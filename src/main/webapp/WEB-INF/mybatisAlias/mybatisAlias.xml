@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<!-- 
+	[마이바티스] 스프링에서 "_"를 사용한 컬럼명을 사용 시(BOOK 테이블의 BOOK_ID)
+	카멜케이스로 읽어줌(bookId), INSERT_DATE => insertDate
+	ex) 테이블 컬러명이 member_id인 경우 jsp화면단에서 이 값을 사용 시 memberId로 사용
+	-->
+	<settings>
+		<setting name="mapUnderscoreToCamelCase" value="true"/>
+	</settings>
+	<!-- 자주 사용하는 타입의 별칭을 세팅 -->
+	<typeAliases>
+		<typeAlias type="com.homecat.sweethome.vo.board.BoardVO" alias="boardVO" />
+		<typeAlias type="com.homecat.sweethome.vo.board.ReplyVO" alias="replyVO" />
+		<typeAlias type="com.homecat.sweethome.vo.survey.SurveyVO" alias="surveyVO" />
+		<typeAlias type="com.homecat.sweethome.vo.survey.SurveyDetailVO" alias="surveyDetailVO" />
+		<typeAlias type="com.homecat.sweethome.vo.survey.SurveyResultVO" alias="surveyResultVO" />
+		<typeAlias type="com.homecat.sweethome.vo.calendar.CalendarVO" alias="calendarVO" />
+		<typeAlias type="com.homecat.sweethome.vo.member.MemberVO" alias="memberVO" />
+		<typeAlias type="com.homecat.sweethome.vo.member.MemberAuthVO" alias="memberAuthVO" />
+		<typeAlias type="com.homecat.sweethome.vo.publicFacilities.BookVO" alias="bookVO" />
+		<typeAlias type="com.homecat.sweethome.vo.publicFacilities.BookLoanVO" alias="bookLoanVO" />
+		<typeAlias type="com.homecat.sweethome.vo.waste.WasteVO" alias="wasteVO" />
+		<typeAlias type="com.homecat.sweethome.vo.comm.CommCodeVO" alias="commCodeVO" />
+		<typeAlias type="com.homecat.sweethome.vo.comm.CommDetailVO" alias="commDetailVO" />
+		<typeAlias type="com.homecat.sweethome.vo.attach.AttachVO" alias="attachVO" />
+		<typeAlias type="com.homecat.sweethome.vo.room.RoomVO" alias="roomVO" />
+		<typeAlias type="com.homecat.sweethome.vo.publicFacilities.FacilityVO" alias="facilityVO" />
+		<typeAlias type="com.homecat.sweethome.vo.publicFacilities.ReserveVO" alias="reserveVO" />
+		<typeAlias type="com.homecat.sweethome.vo.charge.ChargeItemVO" alias="chargeItemVO" />
+		<typeAlias type="com.homecat.sweethome.vo.delivery.DeliveryVO" alias="deliveryVO" />
+		<typeAlias type="com.homecat.sweethome.vo.attach.AttachVO" alias="attachVO" />
+		<typeAlias type="com.homecat.sweethome.vo.complain.ComplainVO" alias="complainVO" />
+		<typeAlias type="com.homecat.sweethome.vo.ccpy.CcpyVO" alias="ccpyVO" />
+		<typeAlias type="com.homecat.sweethome.vo.vote.VoteVO" alias="voteVO" />
+		<typeAlias type="com.homecat.sweethome.vo.vote.VoteDetailVO" alias="voteDetailVO" />
+		<typeAlias type="com.homecat.sweethome.vo.vote.VoteResultVO" alias="voteResultVO" />
+		<typeAlias type="com.homecat.sweethome.vo.maintenance.MaintenanceVO" alias="maintenanceVO" />
+		<typeAlias type="com.homecat.sweethome.vo.danji.DanjiVO" alias="danjiVO"/>
+		<typeAlias type="com.homecat.sweethome.vo.mail.MailVO" alias="mailVO"/>
+		<typeAlias type="com.homecat.sweethome.vo.board.ReportVO" alias="reportVO"/>
+		<typeAlias type="com.homecat.sweethome.vo.board.JJIMVO" alias="JJIMVO"/>
+		<typeAlias type="com.homecat.sweethome.vo.moveout.MoveoutVO" alias="moveoutVO"/>
+		<typeAlias type="com.homecat.sweethome.vo.alarm.AlarmVO" alias="alarmVO"/>
+		<typeAlias type="com.homecat.sweethome.vo.message.MessageVO" alias="messageVO"/>
+		<typeAlias type="com.homecat.sweethome.vo.charge.MGMTVO" alias="mgmtVO"/>
+	</typeAliases>
+</configuration>
+
+

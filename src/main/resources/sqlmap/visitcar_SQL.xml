@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homecat.sweethome.mapper.visitCar.VisitCarMapper">
+	
+		<resultMap type="com.homecat.sweethome.vo.visitCar.VisitCarVO" id="VisitCarMap">
+		<result property="rnum" column="RNUM"/>
+		<result property="carNo" column="CAR_NO"/>
+		<result property="memId" column="MEM_ID"/>
+		<result property="visitorName" column="VISITOR_NAME"/>
+		<result property="visitorTelno" column="VISITOR_TELNO"/>
+		<result property="purpose" column="PURPOSE"/>
+		<result property="inTm" column="IN_TM"/>
+		<result property="outTm" column="OUT_TM"/>
+		<association property="memberVO" javaType="memberVO">
+			<result property="memId" column="MEM_ID"/>
+			<result property="roomCode" column="ROOM_CODE"/>
+			<result property="memPw" column="MEM_PW"/>
+			<result property="memNm" column="MEM_NM"/>
+			<result property="memBirth" column="MEM_BIRTH"/>
+			<result property="memSex" column="MEM_SEX"/>
+			<result property="memTelno" column="MEM_TELNO"/>
+			<result property="memEmail" column="MEM_EMAIL"/>
+			<result property="nickname" column="NICKNAME"/>
+			<result property="regDt" column="REG_DT"/>
+			<result property="mviStatus" column="MVI_STATUS"/>
+			<result property="profImg" column="PROF_IMG"/>
+			<result property="hshldrId" column="HSHLDR_ID"/>
+			<result property="memAuth" column="MEM_AUTH"/>
+			<result property="ccpyCode" column="CCPY_CODE"/>
+			<result property="dongCode" column="DONG_CODE"/>
+		</association>
+	</resultMap>
+
+
+
+
+
+
+	
+	<!-- 방문차량 리스트 -->
+	<select id="getVisitCarList" resultType="com.homecat.sweethome.vo.visitCar.VisitCarVO">
+	SELECT T.* FROM	
+		(SELECT ROW_NUMBER() OVER(ORDER BY REG_DT ASC) AS RNUM, 
+			   CAR_NO,
+			   MEM_ID,
+			   TO_CHAR(REG_DT, 'YYYY/MM/DD HH24:MI:SS') REG_DT,
+			   TO_CHAR(IN_TM, 'YYYY/MM/DD HH24:MI') IN_TM,
+			   TO_CHAR(OUT_TM, 'YYYY/MM/DD HH24:MI') OUT_TM,
+			   PURPOSE,
+			   VISITOR_NAME,
+			   VISITOR_TELNO,
+			   CANCEL_YN,
+			   TO_CHAR(CANCEL_TM, 'YYYY/MM/DD HH24:MI') CANCEL_TM,
+			   STATUS
+		FROM VISIT_CAR
+		WHERE MEM_ID = #{memId}) T
+	ORDER BY RNUM DESC
+	</select>
+	
+	<!-- 방문차량 신청 -->
+	<insert id="creatPost" parameterType="com.homecat.sweethome.vo.visitCar.VisitCarVO">
+    INSERT INTO VISIT_CAR(MEM_ID, CAR_NO, VISITOR_NAME, VISITOR_TELNO, IN_TM, OUT_TM, PURPOSE)
+    VALUES (
+        #{memId},
+        #{carNo},
+        #{visitorName},
+        #{visitorTelno},
+        TO_DATE(#{inTm}, 'YYYY-MM-DD HH24:MI:SS'),
+        TO_DATE(#{outTm}, 'YYYY-MM-DD HH24:MI:SS'),
+        #{purpose}
+    )
+	</insert>
+	
+	<!-- 방문차량 신청 삭제 -->
+	<delete id="deletePost" parameterType="com.homecat.sweethome.vo.visitCar.VisitCarVO">
+		DELETE 
+		FROM VISIT_CAR
+		WHERE CAR_NO = #{carNo}
+	</delete>
+	
+	<!-- ///////////////////////관리자 페이지///////////////////////////////////////////////////     -->
+	
+<select id="adVisitCarList" parameterType="hashMap" resultMap="VisitCarMap">
+    SELECT 
+        ROW_NUMBER() OVER(ORDER BY A.REG_DT ASC) AS RNUM,
+        A.CAR_NO,
+        A.VISITOR_NAME,
+        SUBSTR(A.VISITOR_TELNO, 1, 3) || '-' || SUBSTR(A.VISITOR_TELNO, 4, 4) || '-' || SUBSTR(A.VISITOR_TELNO, 7, 4) AS VISITOR_TELNO,
+        A.PURPOSE,
+        TO_CHAR(A.IN_TM, 'YYYY/MM/DD HH24:MI:SS') AS IN_TM,
+        TO_CHAR(A.OUT_TM, 'YYYY/MM/DD HH24:MI:SS') AS OUT_TM,
+        SUBSTR(B.ROOM_CODE, 10) AS ROOM_CODE,
+        SUBSTR(B.ROOM_CODE, 6, 3) AS DONG_CODE,
+        B.MEM_NM,  
+        SUBSTR(B.MEM_TELNO, 1, 3) || '-' || SUBSTR(B.MEM_TELNO, 4, 4) || '-' || SUBSTR(B.MEM_TELNO, 7, 4) AS MEM_TELNO
+    FROM
+        VISIT_CAR A
+    LEFT JOIN
+        MEMBER B ON A.MEM_ID = B.MEM_ID
+</select>
+	
+</mapper>

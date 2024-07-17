@@ -1,0 +1,37 @@
+@charset "UTF-8";
+ .modal {
+    display: none; /* 초기에는 숨겨진 상태 */
+    position: fixed; /* 화면에 고정 */
+    z-index: 1; /* 다른 요소들보다 위에 나타나도록 */
+    left: 0;
+    top: 0;
+    width: 100%; /* 전체 화면 너비 */
+    height: 100%; /* 전체 화면 높이 */
+    overflow: auto; /* 스크롤 가능하도록 */
+    background-color: rgb(0,0,0); /* 배경 색 (어둡게) */
+    background-color: rgba(0,0,0,0.4); /* 반투명 배경 색 */
+  }
+
+  /* 모달 창 내용 */
+  .modal-content {
+    background-color: #fefefe; /* 모달 창 배경 색 */
+    margin: 15% auto; /* 중앙 정렬, 위 아래 여백 */
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%; /* 모달 창 너비 */
+  }
+
+  /* 닫기 버튼 스타일 */
+  .close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+  }
+
+  .close:hover,
+  .close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+  }

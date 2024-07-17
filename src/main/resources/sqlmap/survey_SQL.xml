@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homecat.sweethome.mapper.survey.SurveyMapper">
+	
+	
+	<sql id="where">
+		<if test="keyword!=null and keyword!='' ">
+			AND (SV_TITLE LIKE '%' || #{keyword} || '%')
+		</if>
+	</sql>
+	
+	
+	<!-- 전체 목록  -->
+	<select id="getTotal" parameterType="hashMap" resultType="int">
+		SELECT COUNT(*)
+		FROM SURVEY
+		WHERE 1=1
+		<include refid="where"/>
+	</select>
+	
+	
+	<!-- 설문 목록  -->
+	<select id="getList" resultType="surveyVO" parameterType="hashMap">
+	    SELECT T.* 
+	    FROM
+	    (
+	        SELECT ROW_NUMBER() OVER(ORDER BY SV_CODE) RNUM,
+					SV_CODE,
+					SV_TITLE,
+					COUNT,
+					TO_CHAR(BEGIN_TM, 'YYYY/MM/DD') BEGIN_TM,
+					TO_CHAR(END_TM, 'YYYY/MM/DD') END_TM,
+					END_YN
+			FROM SURVEY
+			WHERE 1 = 1
+			<include refid="where" />
+		) T
+	    WHERE T.RNUM BETWEEN ((#{currentPage}*10) - (10-1)) AND (#{currentPage}*10)
+	</select>
+	
+	
+	<!-- 설문 만들기(관리자) -->
+	<insert id="createPost" parameterType="surveyVO">
+	    INSERT INTO SURVEY (SV_CODE, SV_TITLE, COUNT, BEGIN_TM, END_TM, END_YN)
+	    VALUES (
+	        (SELECT 'SV' || LPAD(COALESCE(TO_NUMBER(SUBSTR(MAX(SV_CODE), 3)), 0) + 1, 3, '0') FROM SURVEY),
+	        #{svTitle}, #{count}, TO_DATE(#{beginTm}, 'YYYY/MM/DD"T"HH24:MI'), TO_DATE(#{endTm}, 'YYYY/MM/DD"T"HH24:MI'), 'N'
+	    )
+	</insert>
+	
+	
+	<!-- 설문 번호 가져오기 -->
+	<select id="getSvCode" resultType="string">
+		SELECT SV_CODE 
+		FROM SURVEY 
+		WHERE SV_TITLE = #{svTitle}
+	</select>
+
+
+ 	<!-- 설문 질문 등록 SURVEY_DETAIL 테이블에--> 
+	<insert id="insertDetail" parameterType="surveyDetailVO">
+		INSERT INTO SURVEY_DETAIL (SVD_CODE, SV_CODE, SVD_ITEM)
+		VALUES ((SELECT 'SVD_' || LPAD(COALESCE(TO_NUMBER(SUBSTR(MAX(SVD_CODE), 5)), 0) + 1, 3, '0')
+				FROM SURVEY_DETAIL 
+				WHERE SV_CODE = #{svCode})
+			, (SELECT MAX(SV_CODE) FROM SURVEY), #{svdItem})
+	</insert>
+
+	
+	<!-- 설문 코드로 설문 정보 가져오기 -->
+    <select id="getSurveyByCode" parameterType="String" resultType="surveyVO">
+        SELECT SV_CODE, SV_TITLE, COUNT, BEGIN_TM, END_TM, END_YN
+        FROM SURVEY
+        WHERE SV_CODE = #{svCode}
+    </select>
+	
+	
+	<!--  설문 코드로 질문 리스트 가져오기 -->
+    <select id="getDetailsByCode" parameterType="String" resultType="surveyDetailVO">
+        SELECT SVD_CODE, SV_CODE, SVD_ITEM
+        FROM SURVEY_DETAIL
+        WHERE SV_CODE = #{svCode}
+        ORDER BY SVD_CODE ASC
+    </select>
+	
+	
+    <!-- 설문 마감 처리 -->
+    <update id="closeSurvey" parameterType="String">
+        UPDATE SURVEY SET END_YN = 'Y' 
+        WHERE SV_CODE = #{svCode}
+    </update>	
+    
+    
+    <!-- 설문 수정 -->
+    <update id="updatePost" parameterType="surveyVO">
+        UPDATE SURVEY
+        SET SV_TITLE = #{svTitle}, 
+        	BEGIN_TM = TO_DATE(#{beginTm}, 'YYYY/MM-DD"T"HH24:MI'), 
+        	END_TM = TO_DATE(#{endTm}, 'YYYY-MM/DD"T"HH24:MI'),
+        	END_YN = 'N'
+        WHERE SV_CODE = #{svCode}
+    </update>
+    
+    
+    <!-- SURVEY_DETAIL 테이블의 데이터 삭제 -->
+    <delete id="surveyDetailDelete" parameterType="String">
+    	DELETE FROM SURVEY_DETAIL
+		WHERE  SV_CODE = #{svCode}
+    </delete>
+	
+	
+	<!-- 설문삭제 -->
+	<delete id="surveyDelete" parameterType="surveyVO">
+		DELETE FROM SURVEY
+		WHERE SV_CODE = #{svCode}
+	</delete>
+	
+
+	<!-- 설문 결과 등록-->
+	<insert id="insertResult" parameterType="surveyResultVO">
+	    INSERT INTO SURVEY_RESULT (SVR_SEQ, SVD_CODE, REPLYER, REPLY, REG_DT, SV_CODE)
+	    VALUES (
+	        (SELECT 'SVR_' || LPAD(COALESCE(MAX(TO_NUMBER(SUBSTR(SVR_SEQ, 5))), 0) + 1, 3, '0') 
+	         FROM SURVEY_RESULT),
+	        #{svdCode},
+	        #{replyer},
+	        #{reply},
+	        SYSDATE,
+	        #{svCode}
+	    )
+	</insert>
+	
+	<!-- 설문 결과 조회 -->
+	<select id="searchResult" resultType="surveyResultVO">
+		SELECT SVR_SEQ, SVD_CODE, REPLYER, REPLY, REG_DT, SV_CODE
+		FROM SURVEY_RESULT
+		WHERE SV_CODE = #{svCode}
+		ORDER BY SVR_SEQ ASC
+	</select>
+	
+	
+	<!-- 설문 코드에 해당하는 질문 코드 리스트 조회 -->
+	<select id="getQuestionCodesBySurvey" resultType="string">
+	    SELECT DISTINCT SVD_CODE
+	    FROM SURVEY_RESULT
+	    WHERE SV_CODE = #{svCode}
+	    ORDER BY SVD_CODE ASC
+	</select>
+	
+	
+	<!-- 참가자 수 구하기 -->
+	<update id="participantCnt" parameterType="String">
+		UPDATE SURVEY SET
+		COUNT = COUNT + 1
+		WHERE
+		SV_CODE = #{svCode}
+	</update>
+	
+	
+	<!-- 제출 목록 중복 방지 -->
+	<select id="getSubmitSurveyUser" parameterType="String" resultType="String">
+		SELECT SV_CODE
+		FROM SURVEY_RESULT
+		WHERE REPLYER = #{memId}
+	</select>
+	
+	
+	<!-- 단지 인원 구하기 -->
+	<select id="getMember" parameterType="String" resultType="int">
+		SELECT COUNT(*)
+		FROM MEMBER
+		WHERE SUBSTR(ROOM_CODE, 1, 4) = #{danjiCode}
+	</select>
+	
+	
+	<select id="homeCnt" resultType="surveyVO">
+		SELECT
+		    sv_code
+		  , end_yn
+		FROM
+		    survey
+	</select>
+</mapper> 

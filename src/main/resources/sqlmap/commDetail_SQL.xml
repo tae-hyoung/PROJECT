@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homecat.sweethome.mapper.comm.CommDetailMapper">
+
+	<select id="getCommDetail" resultType="commDetailVO">
+		SELECT COMM_DET_CODE, COMM_DET_CODE_NM, COMM_DET_CODE_DSCR, COMM_CODE
+		FROM COMM_DETAIL
+		WHERE COMM_CODE = 'waste'
+	</select>
+	
+	<select id="getCommDelivery" resultType="commDetailVO">
+		SELECT COMM_DET_CODE, COMM_DET_CODE_NM, COMM_DET_CODE_DSCR, COMM_CODE
+		FROM COMM_DETAIL
+		WHERE COMM_CODE = 'package'
+	</select>
+	
+	<select id="getCommDetCode" parameterType="String" resultType="commDetailVO">
+        SELECT * FROM COMM_DETAIL WHERE COMM_DET_CODE = #{commDetCode}
+    </select>
+</mapper>

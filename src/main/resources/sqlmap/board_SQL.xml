@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homecat.sweethome.mapper.board.BoardMapper">
+
+	<sql id="where">
+		<if test="keyword!=null and keyword!='' ">
+		    	AND (MEM_ID LIKE '%'|| #{keyword} ||'%'
+		            OR TITLE LIKE '%'|| #{keyword} ||'%'
+		            OR CONTENT LIKE '%'|| #{keyword} ||'%')
+		</if>
+	</sql>
+	
+	<select id="getAllList" parameterType="hashMap" resultType="boardVO">
+		SELECT T.BRD_SEQ, T.DANJI_CODE, T.BRD_CAT, T.MEM_ID, T.TITLE, T.CONTENT, T.REG_DT, T.UPD_DT, 
+				T.VIEW_CNT, T.LIKE_CNT, T.REPORT_CNT, T.BLIND_YN, T.ATTACH, T.DEL_YN, T.NICKNAME
+		FROM(
+		    SELECT ROW_NUMBER() OVER(ORDER BY REG_DT DESC) RNUM, BRD_SEQ, DANJI_CODE, BRD_CAT, MEM_ID, TITLE, CONTENT, 
+		        TO_CHAR(REG_DT, 'YYYY/MM/DD HH24:MI:SS') REG_DT, TO_CHAR(UPD_DT, 'YYYY/MM/DD HH24:MI:SS') UPD_DT, VIEW_CNT, LIKE_CNT, REPORT_CNT, BLIND_YN, ATTACH, DEL_YN, NICKNAME
+		    FROM BOARD
+	    	Where BRD_CAT != 'board_site'
+			<include refid="where"></include>
+			) T
+		WHERE T.RNUM BETWEEN ((#{currentPage}*10) - (10-1)) AND (#{currentPage}*10)
+	</select>
+	
+	<select id="getListByCat" parameterType="hashMap" resultType="boardVO">
+		SELECT T.BRD_SEQ, T.DANJI_CODE, T.BRD_CAT, T.MEM_ID, T.TITLE, T.CONTENT, 
+		        T.REG_DT, T.UPD_DT, T.VIEW_CNT, T.LIKE_CNT, T.REPORT_CNT, T.BLIND_YN, T.ATTACH, T.DEL_YN, T.NICKNAME
+		FROM(
+		    SELECT ROW_NUMBER() OVER(ORDER BY REG_DT DESC) RNUM, BRD_SEQ, DANJI_CODE, BRD_CAT, MEM_ID, TITLE, CONTENT, 
+		        TO_CHAR(REG_DT, 'YYYY/MM/DD HH24:MI:SS') REG_DT, TO_CHAR(UPD_DT, 'YYYY/MM/DD HH24:MI:SS') UPD_DT, VIEW_CNT, LIKE_CNT, REPORT_CNT, BLIND_YN, ATTACH, DEL_YN, NICKNAME
+		    FROM BOARD
+			<if test="boardCat != 'board_all'">
+				WHERE BRD_CAT = #{boardCat}
+			</if>
+			<if test="boardCat == 'board_all'">
+				WHERE BRD_CAT != 'board_site'
+			</if>
+			<include refid="where"></include>
+			) T
+		WHERE T.RNUM BETWEEN ((#{currentPage}*10) - (10-1)) AND (#{currentPage}*10)
+	</select>
+	
+	<select id="getList" parameterType="hashMap" resultType="boardVO">
+		SELECT T.RNUM, T.BRD_SEQ, T.DANJI_CODE, T.BRD_CAT, T.MEM_ID, T.TITLE, T.CONTENT, 
+		        T.REG_DT, T.UPD_DT, T.VIEW_CNT, T.LIKE_CNT, T.REPORT_CNT, T.BLIND_YN, T.ATTACH, T.DEL_YN, T.NICKNAME
+		FROM(
+		    SELECT ROW_NUMBER() OVER(ORDER BY REG_DT DESC) RNUM, BRD_SEQ, DANJI_CODE, BRD_CAT, MEM_ID, TITLE, CONTENT, 
+		        TO_CHAR(REG_DT, 'YYYY/MM/DD HH24:MI:SS') REG_DT, TO_CHAR(UPD_DT, 'YYYY/MM/DD HH24:MI:SS') UPD_DT, VIEW_CNT, LIKE_CNT, REPORT_CNT, BLIND_YN, ATTACH, DEL_YN, NICKNAME
+		    FROM BOARD
+		    WHERE BRD_CAT = #{boardCat}
+		    	AND DEL_YN = 'N'
+			<include refid="where"></include>
+			) T
+		WHERE T.RNUM BETWEEN ((#{currentPage}*10) - (10-1)) AND (#{currentPage}*10)
+	</select>
+	
+	<select id="getListTop" parameterType="int" resultType="boardVO">
+		SELECT *
+		FROM
+			(SELECT ROW_NUMBER() OVER(ORDER BY REG_DT DESC) RNUM, BRD_SEQ, DANJI_CODE, BRD_CAT, MEM_ID, TITLE, CONTENT, REG_DT, UPD_DT, VIEW_CNT, LIKE_CNT, REPORT_CNT, BLIND_YN, ATTACH, DEL_YN, NICKNAME
+			FROM BOARD
+			WHERE BRD_CAT = 'board_site'
+				AND DEL_YN = 'N')
+		WHERE RNUM BETWEEN 1 AND #{num}
+	</select>
+	
+	<select id="getListTop2" parameterType="int" resultType="boardVO">
+		SELECT *
+		FROM
+			(SELECT ROW_NUMBER() OVER(ORDER BY REG_DT DESC) RNUM, BRD_SEQ, DANJI_CODE, BRD_CAT, MEM_ID, TITLE, CONTENT, REG_DT, UPD_DT, VIEW_CNT, LIKE_CNT, REPORT_CNT, BLIND_YN, ATTACH, DEL_YN, NICKNAME
+			FROM BOARD
+			WHERE BRD_CAT = 'board_notice'
+				AND DEL_YN = 'N')
+		WHERE RNUM BETWEEN 1 AND #{num}
+	</select>
+
+	<update id="countView">
+		UPDATE BOARD SET VIEW_CNT = VIEW_CNT + 1
+		WHERE BRD_SEQ = #{brdNo}
+	</update>
+	
+	<select id="getDetail" parameterType="string" resultType="boardVO">
+		SELECT BRD_SEQ, DANJI_CODE, BRD_CAT, MEM_ID, TITLE, CONTENT, TO_CHAR(REG_DT, 'YYYY/MM/DD HH24:MI:SS') REG_DT, TO_CHAR(UPD_DT, 'YYYY/MM/DD HH24:MI:SS') UPD_DT, VIEW_CNT, LIKE_CNT, REPORT_CNT, BLIND_YN, ATTACH, DEL_YN, NICKNAME
+		FROM BOARD
+		WHERE BRD_SEQ = #{brdNo}
+	</select>
+
+	<select id="getReplyList" parameterType="string" resultType="replyVO">
+		SELECT REP_SEQ, BRD_SEQ, MEM_ID, CONTENT, TO_CHAR(REG_DT, 'YYYY/MM/DD HH24:MI:SS') REG_DT, LIKE_CNT, BLIND_YN, DEL_YN, NICKNAME
+		FROM REPLY
+		WHERE BRD_SEQ = #{brdNo}
+			AND DEL_YN = 'N'
+		ORDER BY REG_DT DESC
+	</select>
+
+	<select id="getReplyAllList" parameterType="string" resultType="replyVO">
+		SELECT REP_SEQ, BRD_SEQ, MEM_ID, CONTENT, TO_CHAR(REG_DT, 'YYYY/MM/DD HH24:MI:SS') REG_DT, LIKE_CNT, BLIND_YN, DEL_YN, NICKNAME
+		FROM REPLY
+		WHERE BRD_SEQ = #{brdNo}
+		ORDER BY REG_DT DESC
+	</select>
+	
+	<update id="repDel" parameterType="hashMap">
+		UPDATE REPLY SET DEL_YN = #{delYn}
+		WHERE BRD_SEQ = #{brdNo}
+			AND REP_SEQ = #{repNo}
+	</update>
+	
+	<update id="boardLike" parameterType="hashMap">
+		UPDATE BOARD SET LIKE_CNT = LIKE_CNT + 1
+		WHERE BRD_SEQ = #{brdNo}
+	</update>
+	
+	<update id="replyLike" parameterType="hashMap">
+		UPDATE REPLY SET LIKE_CNT = LIKE_CNT + 1
+		WHERE BRD_SEQ = #{brdNo}
+			AND REP_SEQ = #{repNo}
+	</update>
+	
+	<select id="getBrdLike" parameterType="hashMap" resultType="int">
+		SELECT LIKE_CNT
+		FROM BOARD
+		WHERE BRD_SEQ = #{brdNo}
+	</select>
+	
+	<select id="getRepLike" parameterType="hashMap" resultType="int">
+		SELECT LIKE_CNT
+		FROM REPLY
+		WHERE BRD_SEQ = #{brdNo}
+			AND REP_SEQ = #{repNo}
+	</select>
+	
+	<insert id="insertReply" parameterType="replyVO">
+		INSERT INTO REPLY(REP_SEQ, BRD_SEQ, MEM_ID, CONTENT, REG_DT, LIKE_CNT, BLIND_YN, NICKNAME)
+		VALUES(
+			(SELECT 'REP' || TRIM(NVL(TO_CHAR(SUBSTR(MAX(REP_SEQ), 4) + 1, '000'), '001'))
+			FROM REPLY
+			WHERE BRD_SEQ = #{brdSeq}), 
+			#{brdSeq}, #{memId}, #{content}, SYSDATE, 0, 'N', (SELECT NICKNAME FROM MEMBER WHERE MEM_ID = #{memId})
+		)
+	</insert>
+	
+	<select id="getAllTotal" parameterType="hashMap" resultType="int">
+		SELECT COUNT(*)
+		FROM BOARD
+    	Where BRD_CAT != 'board_site'
+		<include refid="where"></include>
+	</select>
+	
+	<select id="getTotalByCat" parameterType="hashMap" resultType="int">
+		SELECT COUNT(*)
+		FROM BOARD
+		<if test="boardCat != 'board_all'">
+			WHERE BRD_CAT = #{boardCat}
+		</if>
+		<include refid="where"></include>
+	</select>
+	
+	<select id="getTotal" parameterType="hashMap" resultType="int">
+		SELECT COUNT(*)
+		FROM BOARD
+		WHERE BRD_CAT = #{boardCat}
+	    	AND DEL_YN = 'N'
+		<include refid="where"></include>
+	</select>
+	
+	<insert id="insertBoard" parameterType="boardVO">
+		INSERT INTO BOARD(BRD_SEQ, DANJI_CODE, BRD_CAT, MEM_ID, TITLE, CONTENT, NICKNAME, THUMBNAIL)
+		VALUES(
+		(SELECT 'BRD' || NVL(TRIM(TO_CHAR(SUBSTR(MAX(BRD_SEQ), 4) + 1, '000')), '001') FROM BOARD), 
+		#{danjiCode}, #{brdCat}, #{memId}, #{title}, #{content}, (SELECT NICKNAME FROM MEMBER WHERE MEM_ID = #{memId}), #{thumbnail})
+	</insert>
+	
+	<update id="update" parameterType="boardVO">
+		UPDATE BOARD SET 
+		UPD_DT=SYSDATE
+		<if test="title!=null and title!='' ">
+		, title=#{title}
+		</if>
+		<if test="content!=null and content!='' ">
+		, content=#{content}
+		</if>
+		WHERE BRD_SEQ=#{brdSeq}
+	</update>
+	
+	<update id="delete" parameterType="string">
+		UPDATE BOARD SET
+		DEL_YN = 'Y'
+		WHERE BRD_SEQ = #{brdSeq}
+	</update>
+	
+	<update id="toggleBlind" parameterType="hashMap">
+		UPDATE BOARD SET
+		<if test="blind == true">
+		BLIND_YN = 'Y'
+		</if>
+		<if test="blind == false">
+		BLIND_YN = 'N'
+		</if>
+		WHERE BRD_SEQ = #{brdSeq}
+	</update>
+	
+	<insert id="report" parameterType="hashMap">
+		INSERT INTO REPORT(RPT_SEQ, BRD_SEQ, REP_SEQ, REPORTER, REG_DT, RPT_CAT, REASON, BRD_REP)
+<!-- 		<if test="repNo == null or repNo == ''"> -->
+		VALUES((SELECT 'RPT' || TRIM(TO_CHAR(SUBSTR(NVL(MAX(RPT_SEQ), 'RPT000'), 4) + 1, '000'))
+        		FROM REPORT), #{brdNo}, null, #{reporter}, SYSDATE, #{category}, #{reason}, 'B')
+<!-- 		</if> -->
+<!-- 		<if test="repNo != null and repNo != ''"> -->
+<!-- 		VALUES((SELECT 'RPT' || TRIM(TO_CHAR(SUBSTR(NVL(MAX(RPT_SEQ), 'RPT000'), 4) + 1, '000')) -->
+<!--         		FROM REPORT), #{brdNo}, #{repNo}, #{reporter}, SYSDATE, #{category}, #{reason}, 'R') -->
+<!-- 		</if> -->
+	</insert>
+	
+	<update id="countReport">
+<!-- 		<if test="repNo == ''"> -->
+			UPDATE BOARD SET REPORT_CNT = REPORT_CNT + 1
+			WHERE BRD_SEQ = #{brdNo}
+<!-- 		</if> -->
+<!-- 		<if test="repNo != ''"> -->
+<!-- 			UPDATE REPLY SET REPORT_CNT = REPORT_CNT + 1 -->
+<!-- 			WHERE BRD_SEQ = #{brdNo} -->
+<!-- 				AND REP_SEQ = #{repNo} -->
+<!-- 		</if> -->
+	</update>
+	
+	<update id="adminDelete" parameterType="hashMap">
+		UPDATE BOARD SET
+		DEL_YN = #{delYn}
+		WHERE BRD_SEQ = #{brdSeq}
+	</update>
+	
+	<select id="getReportList" parameterType="hashMap" resultType="reportVO">
+		SELECT RPT_SEQ, BRD_SEQ, REP_SEQ, REPORTER, REG_DT, RPT_CAT, REASON, STATUS, BRD_REP
+		FROM REPORT
+		WHERE BRD_SEQ = #{brdNo}
+			AND BRD_REP = 'B'
+		ORDER BY REG_DT
+	</select>
+	
+	<select id="getDateChart" resultType="hashMap">
+		SELECT SUBSTR(REG_DT, 1, 10) REG_DT, COUNT(*) CNT
+		FROM BOARD
+		GROUP BY SUBSTR(REG_DT, 1, 10)
+		ORDER BY SUBSTR(REG_DT, 1, 10)
+	</select>
+	
+	<select id="getCateChart" resultType="hashMap">
+		SELECT BRD_CAT, COUNT(*) CNT
+		FROM BOARD
+		GROUP BY BRD_CAT
+		HAVING BRD_CAT != 'board_site'
+		ORDER BY BRD_CAT
+	</select>
+	
+	<insert id="JJIM" parameterType="hashMap">
+		INSERT INTO TRADE_SAVE(BRD_SEQ, MEM_ID, SAVE_DT)
+		VALUES(#{brdSeq}, #{memId}, SYSDATE)
+	</insert>
+	
+	<delete id="CancelJJIM" parameterType="hashMap">
+		DELETE TRADE_SAVE
+		WHERE BRD_SEQ = #{brdSeq}
+			AND MEM_ID = #{memId}
+	</delete>
+	
+	<select id="getJJIMList" parameterType="hashMap" resultType="JJIMVO">
+		SELECT BRD_SEQ, MEM_ID, SAVE_DT
+		FROM TRADE_SAVE
+		WHERE BRD_SEQ = #{brdSeq}
+	</select>
+	
+	<select id="getJJIMListById" parameterType="hashMap" resultType="JJIMVO">
+		SELECT T.BRD_SEQ, T.MEM_ID, T.SAVE_DT, B.TITLE 
+		FROM TRADE_SAVE T LEFT OUTER JOIN BOARD B
+		ON T.BRD_SEQ = B.BRD_SEQ
+		WHERE T.MEM_ID = #{memId}
+	</select>
+	
+	<select id="getNext" parameterType="hashMap" resultType="hashMap">
+		<![CDATA[
+		SELECT BRD_SEQ, TITLE 
+		FROM BOARD 
+		WHERE BRD_CAT = 'board_site'
+		    AND DEL_YN = 'N'
+		    AND TO_NUMBER(SUBSTR(BRD_SEQ, 4, 3)) > #{num}
+		    AND BRD_SEQ = ( 
+		    	SELECT MIN(BRD_SEQ) 
+                FROM BOARD 
+                WHERE BRD_CAT = 'board_site'
+                	AND DEL_YN = 'N'
+                	AND TO_NUMBER(SUBSTR(BRD_SEQ, 4, 3)) > #{num}
+            )
+	    ]]>
+	</select>
+	
+	<select id="getPrev" parameterType="hashMap" resultType="hashMap">
+		<![CDATA[
+		SELECT BRD_SEQ, TITLE 
+		FROM BOARD 
+		WHERE BRD_CAT = 'board_site'
+		    AND DEL_YN = 'N'
+		    AND TO_NUMBER(SUBSTR(BRD_SEQ, 4, 3)) < #{num}
+		    AND BRD_SEQ = ( 
+		    	SELECT MAX(BRD_SEQ) 
+                FROM BOARD 
+                WHERE BRD_CAT = 'board_site'
+                	AND DEL_YN = 'N'
+                	AND TO_NUMBER(SUBSTR(BRD_SEQ, 4, 3)) < #{num}
+            )
+	    ]]>
+	</select>
+	
+	<select id="getBrdSeq" resultType="String">
+		SELECT 'BRD' || TO_CHAR(SUBSTR(MAX(BRD_SEQ), 4, 3) + 1, '000') FROM BOARD
+	</select>
+	
+	<select id="getTradeList" resultType="boardVO">
+		SELECT * FROM BOARD
+		WHERE BRD_CAT = 'board_trade'
+			AND DEL_YN = 'N'
+		ORDER BY REG_DT DESC
+	</select>
+	
+</mapper>

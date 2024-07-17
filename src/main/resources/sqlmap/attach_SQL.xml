@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="attach">
+	<insert id="insertAttach" parameterType="attachVO">
+		INSERT INTO
+		ATTACH(GLOBAL_CODE, ATTCH_SEQ, FILE_NAME, FILE_SIZE 
+		<if test="contentType != null and contentType != ''">
+		,CONTENT_TYPE
+		</if>
+		, REG_DT, DEL_YN, USE_YN)
+		VALUES(#{globalCode}, #{attchSeq}, #{fileName},
+		#{fileSize}
+		<if test="contentType != null and contentType != ''">
+		,#{contentType}
+		</if>
+		, SYSDATE, 'N', 'N')
+	</insert>
+
+	<select id="getFileName" parameterType="String"
+		resultType="attachVO">
+		SELECT A.GLOBAL_CODE, A.ATTCH_SEQ, A.FILE_NAME,
+		A.FILE_SIZE, A.CONTENT_TYPE, A.REG_DT
+		FROM ATTACH A
+		WHERE GLOBAL_CODE = #{globalCode}
+		AND A.ATTCH_SEQ = (
+		SELECT MIN(B.ATTCH_SEQ)
+		FROM ATTACH B
+		WHERE B.GLOBAL_CODE = A.GLOBAL_CODE
+		)
+	</select>
+
+</mapper>

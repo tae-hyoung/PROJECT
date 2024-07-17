@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper
+	namespace="com.homecat.sweethome.mapper.delivery.DeliveryMapper">
+
+	<resultMap type="deliveryVO" id="deliveryMap">
+		<result property="rnum" column="RNUM" />
+		<result property="pckSeq" column="PCK_SEQ" />
+		<result property="memId" column="MEM_ID" />
+		<result property="pckItem" column="PCK_ITEM" />
+		<result property="regDt" column="REG_DT" />
+		<result property="pickUpDt" column="PICK_UP_DT" />
+		<result property="weigh" column="WEIGH" />
+		<result property="price" column="PRICE" />
+		<result property="pckQty" column="PCK_QTY" />
+		<result property="pckTotal" column="PCK_TOTAL" />
+		<result property="ccpyCode" column="CCPY_CODE" />
+		<result property="attach" column="ATTACH" />
+		<result property="pckStatus" column="PCK_STATUS" />
+		<result property="cancelYn" column="CANCEL_YN" />
+		<result property="cancelTm" column="CANCEL_TM" />
+		<result property="sendName" column="SEND_NAME" />
+		<result property="sendTel" column="SEND_TEL" />
+		<result property="reName" column="RE_NAME" />
+		<result property="reTel" column="RE_TEL" />
+		<result property="sendAddress" column="SEND_ADDRESS" />
+		<result property="rePost" column="RE_POST" />
+		<result property="reAddress" column="RE_ADDRESS" />
+		<result property="reDeAddress" column="RE_DE_ADDRESS" />
+		<result property="hopeDt" column="HOPE_DT" />
+		<result property="backYn" column="BACK_YN" />
+		<result property="backComment" column="BACK_COMMENT" />
+		<result property="backTm" column="BACK_TM" />
+		<result property="ccpyName" column="CCPY_NAME" />
+		<collection property="commDetailVOList" resultMap="commDetailMap"></collection>
+		<collection property="commDetailVOList" resultMap="ccpyMap"></collection>
+		<collection property="memberVOList" resultMap="memberMap"></collection>
+		<collection property="danjiVOList" resultMap="danjiMap"></collection>
+	</resultMap>
+
+	<resultMap type="commDetailVO" id="commDetailMap">
+		<result property="commDetCodeNm" column="COMM_DET_CODE_NM" />
+		<result property="commDetCode" column="COMM_DET_CODE" />
+	</resultMap>
+
+	<resultMap type="ccpyVO" id="ccpyMap">
+		<result property="ccpyCode" column="CCPY_CODE" />
+		<result property="ccpyName" column="CCPY_NAME" />
+	</resultMap>
+	
+	<resultMap type="memberVO" id="memberMap">
+		<result property="memId" column="MEM_ID" />
+		<result property="roomCode" column="ROOM_CODE" />
+	</resultMap>
+	
+	<resultMap type="com.homecat.sweethome.vo.danji.DanjiVO" id="danjiMap">
+		<result property="danjiName" column="DANJI_NAME" />
+		<result property="addrDetail" column="ADDR_ADDRESS" />
+	</resultMap>
+
+	<select id="list" parameterType="hashMap" resultMap="deliveryMap">
+		SELECT
+		ROW_NUMBER() OVER(ORDER BY A.PCK_SEQ DESC) RNUM
+		, A.PCK_SEQ
+		, A.MEM_ID
+		, A.PCK_ITEM
+		, B.COMM_DET_CODE_NM
+		, TO_CHAR(A.REG_DT,'YYYY/MM/DD') REG_DT
+		, TO_CHAR(A.PICK_UP_DT,'YYYY/MM/DD') PICK_UP_DT
+		, A.PCK_STATUS
+		, A.CANCEL_YN
+		, A.BACK_YN
+		FROM PACKAGE A, COMM_DETAIL B
+		WHERE A.PCK_ITEM = B.COMM_DET_CODE
+		AND A.MEM_ID =#{memId}
+	</select>
+
+	<select id="detail" parameterType="deliveryVO" resultMap="deliveryMap">
+		SELECT
+			ROW_NUMBER() OVER(ORDER BY A.PCK_SEQ DESC) RNUM 
+		    , A.PCK_SEQ
+		    , TO_CHAR(A.REG_DT,'YYYY/MM/DD HH24:MI:SS') REG_DT
+		    , TO_CHAR(A.PICK_UP_DT,'YYYY/MM/DD HH24:MI:SS') PICK_UP_DT
+		    , TO_CHAR(A.CANCEL_TM,'YYYY/MM/DD HH24:MI:SS') CANCEL_TM
+		    , A.PCK_ITEM
+		    , B.COMM_DET_CODE_NM
+		    , A.WEIGH
+		    , (A.PRICE*A.PCK_QTY) PCK_TOTAL
+		    , A.CCPY_CODE
+		    , C.CCPY_NAME
+		    , A.PRICE
+		    , A.PCK_QTY
+		    , A.ATTACH
+		    , A.PCK_STATUS
+		    , A.CANCEL_YN
+		    , A.SEND_NAME
+		    , A.SEND_TEL
+		    , A.RE_NAME
+		    , A.RE_TEL
+		    , A.RE_POST
+		    , A.RE_ADDRESS
+		    , A.RE_DE_ADDRESS
+		    , A.BACK_YN
+		    , TO_CHAR(A.BACK_TM,'YYYY/MM/DD HH24:MI:SS') BACK_TM
+		    , A.BACK_COMMENT
+		    , TO_CHAR(A.HOPE_DT,'YYYY/MM/DD') HOPE_DT
+            FROM PACKAGE A LEFT JOIN COMM_DETAIL B
+		    ON A.PCK_ITEM = B.COMM_DET_CODE
+		                    LEFT JOIN CCPY C
+		    ON A.CCPY_CODE = C.CCPY_CODE
+		    WHERE PCK_SEQ=#{pckSeq}
+	</select>
+
+	<update id="delUpdate" parameterType="deliveryVO">
+		update
+		package
+		set
+		cancel_yn = 'Y'
+		, cancel_tm = sysdate
+		where
+		pck_seq = #{pckSeq}
+	</update>
+
+
+	<update id="update" parameterType="deliveryVO">
+		UPDATE PACKAGE
+		SET
+		<if test="sendName!=null and sendName!=''">
+			SEND_NAME = #{sendName}
+		</if>
+		<if test="sendTel!=null and sendTel!=''">
+			, SEND_TEL =#{sendTel}
+		</if>
+		<if test="reName!=null and reName!=''">
+			, RE_NAME = #{reName}
+		</if>
+		<if test="reTel!=null and reTel!=''">
+			, RE_TEL =#{reTel}
+		</if>
+		<if test="rePost!=null and rePost!=''">
+			, RE_POST = #{rePost}
+		</if>
+		<if test="reAddress!=null and reAddress!=''">
+			, RE_ADDRESS = #{reAddress}
+		</if>
+		<if test="reDeAddress!=null and reDeAddress!=''">
+			, RE_DE_ADDRESS = #{reDeAddress}
+		</if>
+		<if test="hopeDt!=null and hopeDt!=''">
+			, HOPE_DT = TO_DATE(#{hopeDt},'YYYY/MM/DD HH24:MI:SS')
+		</if>
+		WHERE PCK_SEQ = #{pckSeq}
+	</update>
+
+	<insert id="create" parameterType="deliveryVO">
+		<selectKey resultType="String" order="BEFORE" keyProperty="pckSeq">
+			select 'PCK'|| LPAD(pck_seq.NEXTVAL, 4, '0') from dual
+		</selectKey>
+		INSERT INTO package (
+		pck_seq
+		, reg_dt
+		, pck_item
+		, weigh
+		, price
+		, mem_id
+		, ccpy_code
+		, pck_qty
+		, pck_total
+		, send_name
+		, send_tel
+		, re_name
+		, re_tel
+		, re_post
+		, re_address
+		, re_de_address
+		, hope_dt
+		) VALUES (
+		#{pckSeq}
+		, sysdate
+		, #{pckItem}
+		, #{weigh}
+		, #{price}
+		, #{memId}
+		, #{ccpyCode}
+		, #{pckQty}
+		, (#{pckQty}*#{price})
+		, #{sendName}
+		, #{sendTel}
+		, #{reName}
+		, #{reTel}
+		, #{rePost}
+		, #{reAddress}
+		, #{reDeAddress}
+		, TO_DATE(#{hopeDt},'YYYY/MM/DD HH24:MI:SS')
+		)
+	</insert>
+
+	<update id="updateFileName" parameterType="attachVO">
+		UPDATE PACKAGE
+		SET
+		ATTACH = #{fileName}
+		WHERE PCK_SEQ = #{globalCode}
+	</update>
+
+	<!--////관리자//////// -->
+	<select id="partList" parameterType="hashMap"
+		resultMap="deliveryMap">
+		 SELECT
+		        ROW_NUMBER() OVER(ORDER BY A.PCK_SEQ DESC) RNUM,
+		        A.PCK_SEQ,
+		        A.MEM_ID,
+		        A.PCK_ITEM,
+		        B.COMM_DET_CODE_NM,
+		        TO_CHAR(A.REG_DT,'YYYY/MM/DD') REG_DT,
+		        TO_CHAR(A.PICK_UP_DT,'YYYY/MM/DD') PICK_UP_DT,
+		        A.PCK_STATUS,
+		        A.CANCEL_YN,
+		        A.CCPY_CODE,
+		        C.CCPY_NAME,
+		        A.BACK_YN
+		    FROM PACKAGE A
+		    LEFT JOIN COMM_DETAIL B ON A.PCK_ITEM = B.COMM_DET_CODE
+		    LEFT JOIN CCPY C ON A.CCPY_CODE = C.CCPY_CODE
+		    WHERE 1=1
+		    <if test="ccpyCode != null and ccpyCode != ''">
+		        AND A.CCPY_CODE = #{ccpyCode}
+		    </if>
+	</select>
+	
+	<select id="deliveryDetail" parameterType="deliveryVO"
+		resultMap="deliveryMap">
+		SELECT
+			ROW_NUMBER() OVER(ORDER BY A.PCK_SEQ DESC) RNUM 
+		    , A.PCK_SEQ
+		    , TO_CHAR(A.REG_DT,'YYYY/MM/DD HH24:MI:SS') REG_DT
+		    , TO_CHAR(A.PICK_UP_DT,'YYYY/MM/DD HH24:MI:SS') PICK_UP_DT
+		    , TO_CHAR(A.CANCEL_TM,'YYYY/MM/DD HH24:MI:SS') CANCEL_TM
+		    , A.PCK_ITEM
+		    , B.COMM_DET_CODE_NM
+		    , A.WEIGH
+		    , (A.PRICE*A.PCK_QTY) PCK_TOTAL
+		    , A.CCPY_CODE
+		    , C.CCPY_NAME
+		    , A.PRICE
+		    , A.PCK_QTY
+		    , A.ATTACH
+		    , A.PCK_STATUS
+		    , A.CANCEL_YN
+		    , A.SEND_NAME
+		    , A.SEND_TEL
+		    , A.RE_NAME
+		    , A.RE_TEL
+		    , A.RE_POST
+		    , A.RE_ADDRESS
+		    , A.RE_DE_ADDRESS
+		    , TO_CHAR(A.HOPE_DT,'YYYY/MM/DD') HOPE_DT
+		    , A.BACK_YN
+		    , TO_CHAR(A.BACK_TM,'YYYY/MM/DD HH24:MI:SS') BACK_TM
+		    , A.BACK_COMMENT
+            , E.DANJI_NAME
+            , E.ADDR_DETAIL
+            , SUBSTR(D.ROOM_CODE, 10) AS ROOM
+            , SUBSTR(D.ROOM_CODE, 6, 3) AS DONG 
+            , ( E.ADDR_DETAIL || ', ' || E.DANJI_NAME || ' ' || SUBSTR(D.ROOM_CODE, 6,3) || '동 ' || SUBSTR(D.ROOM_CODE, 10) ||'호') AS SEND_ADDRESS
+		FROM PACKAGE A LEFT JOIN COMM_DETAIL B
+		    ON A.PCK_ITEM = B.COMM_DET_CODE
+		                    LEFT JOIN CCPY C
+		    ON A.CCPY_CODE = C.CCPY_CODE
+                            LEFT JOIN MEMBER D
+            ON A.MEM_ID = D.MEM_ID
+                            LEFT JOIN DANJI E
+            ON SUBSTR(D.ROOM_CODE, 1, 4) =  E.DANJI_CODE
+		    WHERE PCK_SEQ=#{pckSeq}
+	</select>
+	
+	
+	<update id="back" parameterType="deliveryVO">
+		UPDATE PACKAGE 
+		SET 
+		    BACK_COMMENT = #{backComment}
+		    , BACK_YN = 'Y'
+		    , BACK_TM = SYSDATE
+		WHERE PCK_SEQ = #{pckSeq}
+	</update>
+	
+	<update id="pickUp" parameterType="deliveryVO">
+		UPDATE PACKAGE 
+		SET 
+	    	PCK_STATUS ='Y'
+	    	, PICK_UP_DT = sysdate
+		WHERE PCK_SEQ = #{pckSeq}
+	</update>
+	
+	<select id="ccpyFilter" parameterType="String" resultMap="deliveryMap">
+		SELECT
+		        ROW_NUMBER() OVER(ORDER BY A.PCK_SEQ DESC) RNUM,
+		        A.PCK_SEQ,
+		        A.MEM_ID,
+		        A.PCK_ITEM,
+		        B.COMM_DET_CODE_NM,
+		        TO_CHAR(A.REG_DT,'YYYY/MM/DD') REG_DT,
+		        TO_CHAR(A.PICK_UP_DT,'YYYY/MM/DD') PICK_UP_DT,
+		        A.PCK_STATUS,
+		        A.CANCEL_YN,
+		        A.CCPY_CODE,
+		        C.CCPY_NAME,
+		        A.BACK_YN
+		    FROM PACKAGE A
+		    LEFT JOIN COMM_DETAIL B ON A.PCK_ITEM = B.COMM_DET_CODE
+		    LEFT JOIN CCPY C ON A.CCPY_CODE = C.CCPY_CODE
+		    WHERE 1=1
+		    <if test="!ccpyCode.equals('all')">
+		        AND A.CCPY_CODE = #{ccpyCode}
+		    </if>
+	</select>
+	
+	<select id="monthList" resultType="deliveryVO">
+	<!-- CCPY_CODE별 월별 카운트 -->
+		SELECT
+		    CCPY_CODE,
+		    TO_CHAR(REG_DT, 'YYYY-MM') AS year_month,
+		    COUNT(*) AS count
+		FROM
+		    PACKAGE
+		WHERE
+		    TO_CHAR(REG_DT, 'YYYY') = '2024'
+		GROUP BY
+		    CCPY_CODE,
+		    TO_CHAR(REG_DT, 'YYYY-MM')
+		
+		UNION ALL
+		
+	<!-- 전체 월별 총 카운트 -->
+		SELECT
+		    'TOTAL' AS CCPY_CODE,
+		    TO_CHAR(REG_DT, 'YYYY-MM') AS year_month,
+		    COUNT(*) AS count
+		FROM
+		    PACKAGE
+		WHERE
+		    TO_CHAR(REG_DT, 'YYYY') = '2024'
+		GROUP BY
+		    TO_CHAR(REG_DT, 'YYYY-MM')
+		
+		ORDER BY
+		    year_month,
+		    CCPY_CODE
+	
+	</select>
+	
+	<select id="dayList" resultType="deliveryVO">
+	    SELECT
+		    TO_CHAR(REG_DT, 'D') AS day_of_week,
+		    CCPY_CODE,
+		    COUNT(*) AS count
+		FROM
+		    PACKAGE
+		WHERE
+		    CCPY_CODE IS NOT NULL
+		GROUP BY
+		    TO_CHAR(REG_DT, 'D'),
+		    CCPY_CODE
+		
+		UNION ALL
+		
+		SELECT
+		    TO_CHAR(REG_DT, 'D') AS day_of_week,
+		    'TOTAL' AS CCPY_CODE,
+		    COUNT(*) AS count
+		FROM
+		    PACKAGE
+		WHERE
+		    CCPY_CODE IS NOT NULL
+		GROUP BY
+		    TO_CHAR(REG_DT, 'D')
+		
+		ORDER BY
+		    day_of_week,
+		    CCPY_CODE NULLS LAST
+	
+	</select>
+	
+	<select id="homeCnt" resultType="deliveryVO">
+		SELECT
+		    pck_seq
+		  , pck_status
+		  , cancel_yn
+		  , back_yn
+		  , back_tm
+		  , pay_yn
+		FROM
+		    package
+		where CANCEL_YN = 'N'
+		and BACK_YN = 'N'
+	</select>
+	
+	<select id="getMemId" parameterType="String" resultType="String">
+		SELECT MEM_ID FROM PACKAGE WHERE PCK_SEQ = #{pckSeq}
+	</select>
+	
+</mapper>

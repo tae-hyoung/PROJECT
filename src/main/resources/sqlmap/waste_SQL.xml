@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homecat.sweethome.mapper.waste.WasteMapper">
+
+	<resultMap type="wasteVO" id="wasteMap">
+		<result property="rnum" column="RNUM"/>
+		<result property="wasteSeq" column="WASTE_SEQ"/>
+		<result property="memId" column="MEM_ID"/>
+		<result property="regDt" column="REG_DT"/>
+		<result property="wasteItem" column="WASTE_ITEM"/>
+		<result property="qty" column="QTY"/>
+		<result property="fee" column="FEE"/>
+		<result property="etc" column="ETC"/>
+		<result property="recycleYn" column="RECYCLE_YN"/>
+		<result property="estDt" column="EST_DT"/>
+		<result property="attach" column="ATTACH"/>
+		<result property="wasteStatus" column="WASTE_STATUS"/>
+		<result property="cancelYn" column="CANCEL_YN"/>
+		<result property="cancelTm" column="CANCEL_TM"/>
+		<result property="statusComment" column="STATUS_COMMENT"/>
+		<association property="commDetailVO" javaType="commDetailVO">
+			<result property="commDetCode" column="COMM_DET_CODE"/>
+			<result property="commDetCodeNm" column="COMM_DET_CODE_NM"/>
+			<result property="commDetCodeDscr" column="COMM_DET_CODE_DSCR"/>
+			<result property="commCode" column="COMM_CODE"/>
+		</association>
+		<association property="memberVO" javaType="memberVO">
+			<result property="memId" column="MEM_ID"/>
+			<result property="roomCode" column="ROOM_CODE"/>
+			<result property="memPw" column="MEM_PW"/>
+			<result property="memNm" column="MEM_NM"/>
+			<result property="memBirth" column="MEM_BIRTH"/>
+			<result property="memSex" column="MEM_SEX"/>
+			<result property="memTelno" column="MEM_TELNO"/>
+			<result property="memEmail" column="MEM_EMAIL"/>
+			<result property="nickname" column="NICKNAME"/>
+			<result property="regDt" column="REG_DT"/>
+			<result property="mviStatus" column="MVI_STATUS"/>
+			<result property="profImg" column="PROF_IMG"/>
+			<result property="hshldrId" column="HSHLDR_ID"/>
+			<result property="memAuth" column="MEM_AUTH"/>
+			<result property="ccpyCode" column="CCPY_CODE"/>
+			<result property="dongCode" column="DONG_CODE"/>
+		</association>
+		<collection property="attachList" resultMap="attachMap"></collection>
+	</resultMap>
+	
+	<resultMap type="attachVO" id="attachMap">
+		<result property="attchSeq" column="ATTCH_SEQ"/>
+		<result property="fileName" column="FILE_NAME"/>
+		<result property="fileSize" column="FILE_SIZE"/>
+		<result property="contentType" column="CONTENT_TYPE"/>
+		<result property="regDt" column="REG_DT"/>
+		<result property="delYn" column="DEL_YN"/>
+		<result property="firstRegDt" column="FIRST_REG_DT"/>
+		<result property="firstRegId" column="FIRST_REG_ID"/>
+		<result property="useYn" column="USE_YN"/>
+		<result property="globalCode" column="GLOBAL_CODE"/>
+	</resultMap>
+
+	<select id="wasteList" parameterType="hashMap" resultType="wasteVO" resultMap="wasteMap">
+		SELECT 
+			ROW_NUMBER() OVER(ORDER BY WASTE_SEQ ASC) RNUM,
+			A.WASTE_SEQ
+		  , A.MEM_ID
+		  , B.COMM_DET_CODE_NM
+		  , A.QTY
+		  , A.FEE
+		  , TO_CHAR(A.EST_DT, 'YYYY-MM-DD') EST_DT
+		  , TO_CHAR(A.REG_DT, 'YYYY/MM/DD HH24:MI:SS') REG_DT
+		  , A.WASTE_ITEM
+		  , A.WASTE_STATUS
+		FROM
+			WASTE A
+		LEFT JOIN
+			COMM_DETAIL B
+		ON A.WASTE_ITEM = B.COMM_DET_CODE 
+		WHERE A.MEM_ID = #{memId}
+		ORDER BY RNUM DESC
+	</select>
+	
+	<select id="detail" parameterType="wasteVO" resultMap="wasteMap">
+		SELECT  A.WASTE_SEQ
+			, A.MEM_ID
+			, A.WASTE_ITEM
+			, (SELECT B.COMM_DET_CODE_NM FROM COMM_DETAIL B WHERE B.COMM_DET_CODE = A.WASTE_ITEM) COMM_DET_CODE_NM
+			, A.QTY
+			, A.FEE
+			, A.RECYCLE_YN
+			, A.ETC	
+			, TO_CHAR(A.EST_DT, 'YYYY-MM-DD') EST_DT
+			, TO_CHAR(A.REG_DT, 'YYYY/MM/DD HH24:MI:SS') REG_DT
+			, A.WASTE_STATUS
+			, A.STATUS_COMMENT
+			, C.FILE_NAME
+		FROM WASTE A LEFT OUTER JOIN ATTACH C ON(A.ATTACH = C.GLOBAL_CODE)
+		WHERE A.WASTE_SEQ = #{wasteSeq}
+	</select>
+	
+	<insert id="createPost" parameterType="map" >
+		INSERT INTO WASTE (
+			WASTE_SEQ
+			, MEM_ID
+			, REG_DT
+			, WASTE_ITEM
+			, QTY
+			, FEE
+			, ETC
+			, RECYCLE_YN
+			, EST_DT
+			, WASTE_STATUS
+			, ATTACH
+		)
+		VALUES(
+			(
+				SELECT TO_CHAR(SYSDATE, 'YYYYMMDD') || LPAD(NVL(MAX(TO_NUMBER(SUBSTR(WASTE_SEQ, 9, 3))), 0) + 1, 3, '0')
+				FROM WASTE
+				WHERE TO_CHAR(SYSDATE, 'YYYYMMDD') = SUBSTR(WASTE_SEQ, 1, 8)
+			),
+			#{memId},
+			SYSDATE,
+			#{commDetCodeNm},
+			#{qty},
+			#{fee},
+			#{etc},
+			#{recycleYn},
+			TO_DATE(#{estDt}, 'YYYY-MM-DD'),
+			'승인대기',
+			#{attach}
+		)
+	</insert>
+
+	<update id="updatePost" parameterType="wasteVO">
+		UPDATE WASTE
+			SET 
+				ETC = #{etc},
+				RECYCLE_YN = #{recycleYn},
+				EST_DT = TO_DATE(#{estDt}, 'YYYY-MM-DD')
+				<if test="attach != null and attach != null">
+				,ATTACH = #{attach}
+				</if>
+		WHERE WASTE_SEQ = #{wasteSeq}
+	</update>
+	
+	<delete id="deletePost" parameterType="wasteVO">
+		DELETE 
+		FROM WASTE
+		WHERE WASTE_SEQ = #{wasteSeq}
+	</delete>
+	
+	
+<!-- 	관리자 페이지////////////////////////////////////////////////////////////////// -->
+<!-- 	입주민 폐기물 신청 내역 -->
+	<select id="adWasteList" parameterType="hashMap" resultType="wasteVO" resultMap="wasteMap">
+		SELECT 
+			ROW_NUMBER() OVER(ORDER BY WASTE_SEQ ASC) RNUM,
+			A.WASTE_SEQ
+		  , A.MEM_ID
+		, C.MEM_NM
+		, SUBSTR(C.ROOM_CODE, 10) AS ROOM_CODE
+		, SUBSTR(C.ROOM_CODE, 6, 3) AS DONG_CODE
+		, C.MEM_TELNO
+		, B.COMM_DET_CODE_NM
+		, A.QTY
+		, TO_CHAR(A.EST_DT, 'YYYY/MM/DD')EST_DT
+		, TO_CHAR(A.REG_DT, 'YYYY/MM/DD') REG_DT
+		, A.WASTE_STATUS
+		, D.FILE_NAME
+		FROM
+			WASTE A
+		LEFT JOIN
+			COMM_DETAIL B ON A.WASTE_ITEM = B.COMM_DET_CODE
+		LEFT JOIN
+			MEMBER C ON A.MEM_ID = C.MEM_ID
+		LEFT JOIN
+			ATTACH D ON A.ATTACH = D.GLOBAL_CODE
+		ORDER BY RNUM DESC
+
+	</select>
+	
+	<select id="modalDetail" parameterType="wasteVO" resultMap="wasteMap">
+		SELECT 
+		    A.WASTE_SEQ
+		  , C.MEM_NM
+		  , SUBSTR(C.ROOM_CODE, 10) AS ROOM_CODE
+		  , SUBSTR(C.ROOM_CODE, 6, 3) AS DONG_CODE
+		  , C.MEM_TELNO
+		  , B.COMM_DET_CODE_NM
+		  , A.QTY
+		  , A.FEE
+		  , A.WASTE_STATUS
+		  , A.STATUS_COMMENT
+		  , TO_CHAR(A.EST_DT, 'YYYY/MM/DD')EST_DT
+		  , D.FILE_NAME
+		FROM
+		    WASTE A
+		LEFT OUTER JOIN COMM_DETAIL B ON A.WASTE_ITEM = B.COMM_DET_CODE
+		LEFT OUTER JOIN MEMBER C ON A.MEM_ID = C.MEM_ID
+		LEFT OUTER JOIN ATTACH D ON(A.ATTACH = D.GLOBAL_CODE)
+		WHERE A.WASTE_SEQ = #{wasteSeq}
+	</select>
+	
+	<update id="modalUpdate" parameterType="wasteVO">
+		UPDATE WASTE
+			SET 
+				WASTE_STATUS = #{wasteStatus}
+			  , STATUS_COMMENT = #{statusComment}
+		WHERE WASTE_SEQ = #{wasteSeq}
+	</update>
+	
+	
+	<!-- 폐기물 순번 가져오기   파일 업로드를 위한 -->
+	<select id="getWasteSeq" resultType="String">
+		SELECT TO_CHAR(SYSDATE, 'YYYYMMDD') || LPAD(NVL(MAX(TO_NUMBER(SUBSTR(WASTE_SEQ, 9, 3))), 0) + 1, 3, '0')
+			FROM WASTE
+			WHERE TO_CHAR(SYSDATE, 'YYYYMMDD') = SUBSTR(WASTE_SEQ, 1, 8)
+	</select>
+	
+	<select id="homeCnt" resultType="wasteVO">
+		SELECT
+		    waste_seq
+		  , cancel_yn
+		  , waste_status
+		FROM
+		    waste
+		where CANCEL_YN = 'N'
+	</select>
+	
+	<select id="getMemId" parameterType="String" resultType="String">
+		SELECT MEM_ID FROM WASTE WHERE WASTE_SEQ = #{wasteSeq}
+	</select>
+	
+	<select id="statusCount" resultType="wasteVO">
+		SELECT
+			WASTE_STATUS,
+			COUNT(*) AS CNT
+		FROM
+			WASTE
+		GROUP BY
+			WASTE_STATUS
+	</select>
+
+	<select id="sticker" parameterType="wasteVO" resultMap="wasteMap">
+		SELECT 
+			A.WASTE_SEQ
+		  , B.COMM_DET_CODE_NM
+		  , A.QTY
+		  , A.FEE
+		  , TO_CHAR(A.EST_DT, 'YYYY-MM-DD') EST_DT
+		FROM
+			WASTE A
+		LEFT JOIN
+			COMM_DETAIL B
+		ON A.WASTE_ITEM = B.COMM_DET_CODE 
+		WHERE A.WASTE_SEQ = #{wasteSeq}
+	</select>
+	
+	
+</mapper>

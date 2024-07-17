@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homecat.sweethome.mapper.contract.ContractMapper">
+	
+	<!-- 의무공개계약서 리스트 -->
+	<select id="contractList" resultType="com.homecat.sweethome.vo.contract.ContractVO">
+		SELECT 
+		    ROW_NUMBER() OVER (ORDER BY CT_SEQ ASC) AS RNUM,
+		    CT_SEQ, 
+		    CT_CT, 
+		    CT_TITLE,
+		    TO_CHAR(CT_REG_DT, 'YYYY/MM/DD HH24:MI:SS') CT_REG_DT, 
+		    CT_ATTACH
+		FROM 
+		    CONTRACT
+		ORDER BY 
+		    CT_SEQ DESC
+	</select>
+	
+	<!-- 의무 공개 계약서 등록 -->
+	<insert id="createContract" parameterType="com.homecat.sweethome.vo.contract.ContractVO">
+		INSERT 
+		INTO CONTRACT(CT_SEQ, CT_CT, CT_TITLE, CT_ATTACH) 
+		VALUES (#{ctSeq}, #{ctCt}, #{ctTitle}, #{ctAttach})
+	</insert>
+	
+	<select id="getTopList" parameterType="int" resultType="com.homecat.sweethome.vo.contract.ContractVO">
+		SELECT *
+		FROM
+			(SELECT ROW_NUMBER() OVER(ORDER BY CT_REG_DT DESC) RNUM, CT_SEQ, CT_CT, CT_TITLE, CT_REG_DT, CT_ATTACH
+			FROM CONTRACT)
+		WHERE RNUM BETWEEN 1 AND #{num}
+	</select>
+	
+	
+</mapper>

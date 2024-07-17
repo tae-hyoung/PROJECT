@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homecat.sweethome.mapper.member.SignUpMapper">
+	<!-- 회원 등록  -->
+	<insert id = "signUpMember" parameterType="memberVO">
+		INSERT INTO MEMBER(MEM_ID, ROOM_CODE, MEM_PW, MEM_NM, MEM_BIRTH, MEM_SEX, MEM_TELNO, MEM_EMAIL, NICKNAME, REG_DT, MVI_STATUS
+		<if test="profImg!=null and profImg!=''">
+		, PROF_IMG
+		</if>
+		<if test="hshldrId!=null and hshldrId!=''">
+		, HSHLDR_ID
+		</if>
+		, MEM_AUTH)
+		VALUES(#{memId}, #{roomCode}, #{memPw}, #{memNm}, #{memBirth}, #{memSex}, #{memTelno}, #{memEmail}, #{nickname}, SYSDATE 
+		,(SELECT COMM_DET_CODE FROM COMM_DETAIL WHERE COMM_DET_CODE = 'mvi02')
+		<if test="profImg!=null and profImg!=''">
+		,#{profImg}
+		</if>
+		<if test="hshldrId!=null and hshldrId!=''">
+		,#{hshldrId}
+		</if> 
+		,(SELECT COMM_DET_CODE FROM COMM_DETAIL WHERE COMM_DET_CODE = 'ROLE_USER'))
+	</insert>
+	
+	<!-- 주택관리자 회원가입  -->
+	<insert id = "signUpAdmin" parameterType="memberVO">
+		INSERT INTO MEMBER(MEM_ID, ROOM_CODE, MEM_PW, MEM_NM, MEM_TELNO, MEM_EMAIL, NICKNAME, REG_DT, MVI_STATUS
+		<if test="profImg!=null and profImg!=''">
+		, PROF_IMG
+		</if>
+		, MEM_AUTH)
+		VALUES(#{memId}, #{roomCode}, #{memPw}, #{memNm}, #{memTelno}, #{memEmail}, #{nickname}, SYSDATE 
+		,(SELECT COMM_DET_CODE FROM COMM_DETAIL WHERE COMM_DET_CODE = 'mvi02')
+		<if test="profImg!=null and profImg!=''">
+		,#{profImg}
+		</if>
+		,'ROLE_ADMIN')
+	</insert>
+	
+	<!-- 협력업체 회원가입  -->
+	<insert id = "signUpPartner" parameterType="memberVO">
+		INSERT INTO MEMBER(MEM_ID, ROOM_CODE, MEM_PW, MEM_NM, MEM_TELNO, MEM_EMAIL, NICKNAME, REG_DT, MVI_STATUS
+		<if test="profImg!=null and profImg!=''">
+		, PROF_IMG
+		</if>
+		, MEM_AUTH, CCPY_CODE)
+		VALUES(#{memId}, #{roomCode}, #{memPw}, #{memNm}, #{memTelno}, #{memEmail}, #{nickname}, SYSDATE 
+		,(SELECT COMM_DET_CODE FROM COMM_DETAIL WHERE COMM_DET_CODE = 'mvi02')
+		<if test="profImg!=null and profImg!=''">
+		,#{profImg}
+		</if>
+		,'ROLE_PARTNER', 
+		SELECT 'CCPY' || LPAD(NVL(MAX(TO_NUMBER(SUBSTR(CCPY_CODE, 5))), 0) + 1, 5, '0')
+		FROM CCPY
+		WHERE REGEXP_LIKE(ccpy_code, '^CCPY[0-9]{5}$'))
+	</insert>
+		
+	<insert id="signUpPartnerDetail" parameterType="ccpyVO">
+	INSERT INTO CCPY (CCPY_CODE, CCPY_CAT, CCPY_NAME, CCPY_TELNO, CCPY_POST, CCPY_ADDR, CCPY_ADDR_DETAIL, BIZ_REG_NO, CNTR_DT, EXP_DT)
+	VALUES(SELECT 'CCPY' || LPAD(NVL(MAX(TO_NUMBER(SUBSTR(CCPY_CODE, 5))), 0) + 1, 5, '0')
+		FROM CCPY
+		WHERE REGEXP_LIKE(ccpy_code, '^CCPY[0-9]{5}$');, 
+		#{ccpyCat}, #{ccpyName}, #{ccpyTelno}, #{ccpyPost}, #{ccpyAddr}, #{ccpyAddrDetail}, #{bizRegNo}, #{cntrDt}, #{expDt});
+	</insert>
+	
+	<insert id="addComm" parameterType="commDetailVO">
+		INSERT INTO COMM_DETAIL(COMM_DET_CODE, COMM_DET_CODE_NM, COMM_DET_CODE_DSCR, COMM_CODE)
+		VALUES(SELECT 'mt' || LPAD(NVL(MAX(TO_NUMBER(SUBSTR(COMM_DET_CODE, 3))), 0) + 1, 2, '0')
+			FROM COMM_DETAIL
+			WHERE REGEXP_LIKE(COMM_DET_CODE, '^mt[0-9]{2}$'), #{commDetCodeNm}, #{commDetCodeDscr}, 'maintenance_cat');
+	</insert>
+	<!-- 협력업체 관련 end -->
+	
+	<!-- 아이디 중복확인  -->
+	<select id = "chkId" parameterType="String" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			MEMBER
+		WHERE
+			MEM_ID = #{memId}
+	</select>
+	
+	<!-- 닉네임 중복 확인 -->
+	<select id = "chkNick" parameterType="String" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			MEMBER
+		WHERE
+			NICKNAME = #{nickname}
+	</select>
+	
+	<select id = "chkTelno" parameterType="String" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			MEMBER
+		WHERE
+			MEM_TELNO = #{memTelno}
+	</select>
+	
+	<select id = "selDanji" resultType ="danjiVO">
+		SELECT
+		    DANJI_CODE, DANJI_NAME
+		FROM
+		    DANJI
+	</select>
+
+</mapper>

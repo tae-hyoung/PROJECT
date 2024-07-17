@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homecat.sweethome.mapper.publicFacilities.FacilityMapper">
+
+	<!-- 이혜민 개발  -->
+
+	<select id="tennisMain" parameterType="String" resultType="facilityVO">
+	/** com.homecat.sweethome.mapper.publicFacilities.FacilityMapper.tennisMain : 각 공용시살물의 시설 정보를 담고 있음 */
+		SELECT
+		    fac_code		/** 테니스메인이닷 */
+		  , danji_code 		/** 테니스메인이닷 */
+		  , fac_nm
+		  , fac_loc
+		  , fac_telno
+		  , fac_com
+		FROM
+		    facility
+		where danji_code = 'D001'   /** [필수] 내부 상수 처리 tennisMain  */
+		and fac_code = #{facCode}	/** [선택] 인자값 tennisMain */
+	</select>
+	
+	<select id="reserveList" resultType="reserveVO" parameterType="reserveVO">
+	/** com.homecat.sweethome.mapper.publicFacilities.FacilityMapper.reserveList : 로그인 한 회원의 각 공용시살물 예약 내역을 담고 있음*/
+		SELECT
+		    reserve_seq,
+		    mem_id,
+		    fac_code,
+		    TO_char(reg_dt, 'YYYY/MM/DD') reg_dt,
+		    TO_char(BEGIN_TM, 'YYYY/MM/DD HH24:MI') BEGIN_TM, 
+		    TO_char(END_TM, 'HH24:MI') END_TM, 
+	        ROUND((END_TM - BEGIN_TM) * 24, 1) || ' 시간'  useTime,
+		    seat,
+		    nop,
+		    cancle_yn,
+		    TO_char(cancle_dt, 'YYYY/MM/DD HH24:MI') cancle_dt
+		FROM
+		    reserve
+		WHERE fac_code = #{facCode}
+		AND mem_id = #{memId} 
+		ORDER BY reserve_seq DESC
+	</select>
+	
+	<insert id="reservation" parameterType="reserveVO">
+	/** com.homecat.sweethome.mapper.publicFacilities.FacilityMapper.reservation : 예약하기  */
+		INSERT INTO reserve (
+	    reserve_seq,
+	    mem_id,
+	    fac_code,
+	    reg_dt,
+	    begin_tm,
+	    end_tm,
+	    seat,
+	    nop
+		) VALUES (
+		    (SELECT TO_CHAR(SYSDATE, 'YYYYMMDD') || LPAD(NVL(MAX(TO_NUMBER(SUBSTR(reserve_seq, 9))), 0) + 1, 4, '0') FROM reserve),
+		    #{memId}, <!-- 하드코딩 --> 
+		    #{facCode}, 
+		    sysdate,
+		    TO_DATE(#{beginTm}, 'YYYY/MM/DD HH24:MI'), 
+		    TO_DATE(#{endTm}, 'YYYY/MM/DD HH24:MI'), 
+		    #{seat}, 
+		    #{nop}
+		)
+ 	</insert>
+ 	
+ 	
+ 	<update id="cancleRe" parameterType="reserveVO">
+	/** com.homecat.sweethome.mapper.publicFacilities.FacilityMapper.cancleRe : 예약을 취소하기 */
+ 		update reserve
+		set CANCLE_YN = 'Y'
+		,CANCLE_DT = sysdate
+		where reserve_seq = #{reserveSeq}
+ 	</update>
+ 	
+ 	<select id="blockRe" parameterType="reserveVO" resultType="reserveVO">
+	/** com.homecat.sweethome.mapper.publicFacilities.FacilityMapper.blockRe : 해당 시설물의 자리에 어떤 시간대에 예약이 있는지 체크 후 블락처리 : 이중예약 막기  */
+ 		SELECT
+		    reserve_seq
+		  , mem_id
+		  , fac_code
+		  , TO_char(BEGIN_TM, 'YYYY/MM/DD HH24:MI') BEGIN_TM
+		  , TO_char(END_TM, 'YYYY/MM/DD HH24:MI') END_TM
+		  , seat
+		  , nop
+		  , cancle_yn
+		FROM
+		    reserve
+		where  cancle_yn = 'N'
+		and  fac_code =   #{facCode}
+		and seat = #{seat}
+ 	</select>
+ 	
+ 	<select id="liveRe" parameterType="String" resultMap="reMap">
+	/** com.homecat.sweethome.mapper.publicFacilities.FacilityMapper.liveRe : 해당 시설물의  현재 시간에 사용하고 있는 위치 회색으로 처리 : 실시간 사용자 카운트 */
+		SELECT
+		    r.reserve_seq
+		  , r.mem_id
+		  , r.fac_code
+		  , r.reg_dt
+		  , r.begin_tm
+		  , r.end_tm
+		  , r.seat
+		  , r.nop
+		  , r.cancle_yn
+		  , r.cancle_dt
+		  , m.mem_nm
+		  , m.mem_telno
+		  , substr(m.room_code,6) room_code
+		FROM
+		    reserve r , member m
+		where  r.mem_id = m.mem_id 
+		and cancle_yn = 'N'
+		and  fac_code =   #{facCode}
+		AND SYSDATE BETWEEN BEGIN_TM AND END_TM
+ 	</select>
+ 	
+	<select id="adReserveList"  parameterType="String" resultType="reserveVO">
+	/** com.homecat.sweethome.mapper.publicFacilities.FacilityMapper.adReserveList : 관리자 :  각 공용시설물의 오늘 예약 내역 불러오고 예약자 정보도 불러오기*/
+		SELECT
+		    r.reserve_seq,
+		    r.mem_id,
+		    r.fac_code,
+		    TO_char(r.reg_dt, 'YYYY/MM/DD') reg_dt,
+		    TO_char(r.BEGIN_TM, 'YYYY/MM/DD HH24:MI') BEGIN_TM, 
+		    TO_char(r.END_TM, 'HH24:MI') END_TM, 
+		    ROUND((r.END_TM - r.BEGIN_TM) * 24, 1) || ' 시간'  useTime,
+		    r.seat,
+		    r.nop,
+		    r.cancle_yn,
+		    TO_char(r.cancle_dt, 'YYYY/MM/DD HH24:MI') cancle_dt,
+		    
+		    m.mem_nm,
+		    m.mem_telno,
+		    m.room_code
+		FROM
+		    reserve r, member m
+		WHERE r.mem_id = m.mem_id 
+		and fac_code = #{facCode}
+		AND TO_CHAR(BEGIN_TM, 'YYYY/MM/DD') = TO_CHAR(SYSDATE, 'YYYY/MM/DD')
+		ORDER BY reserve_seq DESC
+	</select>
+	
+	
+	<select id="allReList" resultType="reserveVO">
+	/** com.homecat.sweethome.mapper.publicFacilities.FacilityMapper.allReList : 관리자 : 전체 예약 내역 불러오기 */
+		SELECT
+		    r.reserve_seq
+		  , r.mem_id
+		  , r.fac_code
+		  , TO_char(r.reg_dt, 'YYYY/MM/DD') reg_dt
+		  , TO_char(r.BEGIN_TM, 'YYYY/MM/DD HH24:MI') BEGIN_TM 
+		  , TO_char(r.END_TM, 'YYYY/MM/DD HH24:MI') END_TM
+		  , r.seat
+		  , r.nop
+		  , r.cancle_yn
+		  , TO_char(r.cancle_dt, 'YYYY/MM/DD HH24:MI') cancle_dt
+		  , f.danji_code
+		FROM
+		    reserve r, facility f   
+		where r.fac_code = f.fac_code
+		and f.danji_code = 'D001'
+		order by  r.reserve_seq  desc 
+	</select>
+	
+	<select id="selectCa" parameterType="String" resultType="reserveVO">
+	/** com.homecat.sweethome.mapper.publicFacilities.FacilityMapper.selectCa : 관리자 : 전체 예약 내역에 공용시설물 별 카테고리 검색 기능*/
+		SELECT
+		    r.reserve_seq
+		  , r.mem_id
+		  , r.fac_code
+		  , TO_char(r.reg_dt, 'YYYY/MM/DD') reg_dt
+		  , TO_char(r.BEGIN_TM, 'YYYY/MM/DD HH24:MI') BEGIN_TM 
+		  , TO_char(r.END_TM, 'YYYY/MM/DD HH24:MI') END_TM
+		  , r.seat
+		  , r.nop
+		  , r.cancle_yn
+		  , TO_char(r.cancle_dt, 'YYYY/MM/DD HH24:MI') cancle_dt
+		  , f.danji_code
+		FROM
+		    reserve r, facility f   
+		where r.fac_code = f.fac_code
+		and f.danji_code = 'D001'
+		<if test="!facCode.equals('all')">
+			and r.fac_code = #{facCode}
+		</if>
+		order by  r.reserve_seq desc
+	</select>
+	
+	
+ 	<resultMap type="reserveVO" id="reMap">
+		<result property="reserveSeq" column="RESERVE_SEQ"/>
+		<result property="memId" column="MEM_ID"/>
+		<result property="facCode" column="FAC_CODE"/>
+		<result property="regDt" column="REG_DT"/>
+		<result property="beginTm" column="BEGIN_TM"/>
+		<result property="endTm" column="END_TM"/>
+		<result property="seat" column="SEAT"/>
+		<result property="nop" column="NOP"/>
+		<result property="cancleYn" column="CANCLE_YN"/>
+		<result property="cancleDt" column="CANCLE_DT"/>
+		<collection property="memberVOList" resultMap="mamMap"></collection>
+		<collection property="facilityVOList" resultMap="facMap"></collection>
+ 	</resultMap>
+ 
+ 	<resultMap type="memberVO" id="mamMap">
+ 		<result property="memId" column="MEM_ID"/>
+		<result property="roomCode" column="ROOM_CODE"/>
+		<result property="memPw" column="MEM_PW"/>
+		<result property="memNm" column="MEM_NM"/>
+		<result property="memBirth" column="MEM_BIRTH"/>
+		<result property="memSex" column="MEM_SEX"/>
+		<result property="memTelno" column="MEM_TELNO"/>
+		<result property="memEmail" column="MEM_EMAIL"/>
+		<result property="nickname" column="NICKNAME"/>
+		<result property="regDt" column="REG_DT"/>
+		<result property="mviStatus" column="MVI_STATUS"/>
+		<result property="profImg" column="PROF_IMG"/>
+		<result property="hshldrId" column="HSHLDR_ID"/>
+ 	</resultMap>
+	
+	<!-- 캘린더 연동  -->
+	<resultMap type="facilityVO" id="facMap">
+		<result property="facCode" column="FAC_CODE"/>
+		<result property="facNm" column="FAC_NM"/>
+	</resultMap>
+	
+	
+	
+	<select id="reDetail" parameterType="reserveVO" resultMap="reMap">
+	/** com.homecat.sweethome.mapper.publicFacilities.FacilityMapper.reDetail : 관리자 : 전체 예약 게시판에서 예약일련번호 별 상세 정보 보기*/
+		SELECT
+		    r.reserve_seq,
+		    r.mem_id,
+		    r.fac_code,
+		    TO_char(r.reg_dt, 'YYYY/MM/DD') reg_dt,
+		    TO_char(r.BEGIN_TM, 'YYYY/MM/DD HH24:MI') BEGIN_TM, 
+		    TO_char(r.END_TM, 'YYYY/MM/DD HH24:MI') END_TM, 
+		    r.seat,
+		    r.nop,
+		    r.cancle_yn,
+		    TO_char(r.cancle_dt, 'YYYY/MM/DD HH24:MI') cancle_dt,
+		    
+		    m.mem_nm,
+		    m.mem_telno,
+		    substr(m.room_code,6) room_code
+		
+		FROM
+		    reserve r, member m
+		WHERE r.mem_id = m.mem_id 
+		AND r.reserve_seq = #{reserveSeq}
+	</select>
+	
+	
+	<!-- 통계 -->
+	
+	<select id="totalRe" resultType="reserveVO">
+	/** com.homecat.sweethome.mapper.publicFacilities.FacilityMapper.totalRe : 관리자 : 월별 각 시설물의 이용 현황을 통계를 내기 위한 쿼리*/
+		SELECT
+		    TO_CHAR(begin_tm, 'MM') AS month,
+		    fac_code,
+		    COUNT(*) AS totalRe
+		FROM
+		    reserve
+		WHERE
+		    cancle_yn = 'N'
+		GROUP BY
+		    TO_CHAR(begin_tm, 'MM'),
+		    fac_code
+		
+		UNION ALL
+		
+		SELECT
+		    TO_CHAR(begin_tm, 'MM') AS month,
+		    'ALL' AS fac_code,
+		    COUNT(*) AS totalRe
+		FROM
+		    reserve
+		WHERE
+		    cancle_yn = 'N'
+		GROUP BY
+		    TO_CHAR(begin_tm, 'MM')
+		ORDER BY
+		    month,
+		    fac_code  
+	</select>
+	
+	
+	<select id="dayCntList" resultType="reserveVO">
+	/** com.homecat.sweethome.mapper.publicFacilities.FacilityMapper.dayCntList : 관리자 : 요일별 각 시설물의 이용 현황을 통계를 내기 위한 쿼리*/
+		SELECT
+		    fac_code, 
+		    TO_CHAR(TO_DATE(begin_tm, 'YYYY/MM/DD HH24:MI'), 'Day') AS weekday, 
+		    COUNT(*) AS reCnt 
+		FROM
+		    reserve
+		GROUP BY
+		    fac_code,
+		    TO_CHAR(TO_DATE(begin_tm, 'YYYY/MM/DD HH24:MI'), 'Day'),
+		    TO_CHAR(TO_DATE(begin_tm, 'YYYY/MM/DD HH24:MI'), 'D') 
+		ORDER BY
+		    fac_code,
+		    TO_CHAR(TO_DATE(begin_tm, 'YYYY/MM/DD HH24:MI'), 'D') asc 
+	</select>
+ 	
+ 	
+ 	
+ 	
+ 	<!--//////////////////// 캘린더////////////////////////// -->
+	<select id="reserveCalList" parameterType="reserveVO" resultMap="reMap">
+		SELECT
+            A.RESERVE_SEQ,
+		    A.MEM_ID,
+		    A.FAC_CODE,
+		    TO_CHAR(A.REG_DT, 'YYYY-MM-DD') REG_DT,
+		    TO_CHAR(A.BEGIN_TM, 'YYYY-MM-DD HH24:MI') BEGIN_TM, 
+		    TO_CHAR(A.END_TM, 'HH24:MI') END_TM, 
+	        ROUND((A.END_TM - A.BEGIN_TM) * 24, 1) || ' 시간'  USETIME,
+		    A.SEAT,
+		    A.NOP,
+		    A.CANCLE_YN,
+		    TO_CHAR(A.CANCLE_DT, 'YYYY-MM-DD HH24:MI') CANCLE_DT,
+            B.FAC_NM
+		FROM RESERVE A LEFT JOIN  FACILITY B
+                    ON A.FAC_CODE = B.FAC_CODE
+		WHERE
+		     A.MEM_ID = #{memId}
+             AND A.CANCLE_YN = 'N'
+		ORDER BY RESERVE_SEQ DESC
+	</select>
+ 	
+ 	
+</mapper>

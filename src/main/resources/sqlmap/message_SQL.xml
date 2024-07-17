@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homecat.sweethome.mapper.message.MessageMapper">
+
+<sql id="whereSender">
+	<if test="sender!=null and sender!='' ">
+	    AND (SENDER LIKE '%'|| #{sender} ||'%')
+	</if>
+</sql>
+
+<sql id="whereReceiver">
+	<if test="receiver!=null and receiver!='' ">
+	    AND (RECEIVER LIKE '%'|| #{receiver} ||'%')
+	</if>
+</sql>
+
+<!-- 메세지 전송  -->
+<insert id="sendMessage" parameterType="messageVO">
+	INSERT INTO MESSAGE (MSG_SEQ, SENDER, RECEIVER, TITLE, CONTENT)
+	VALUES((SELECT TO_NUMBER(NVL(MAX(MSG_SEQ), '0')) + 1 FROM  MESSAGE), #{sender}, #{receiver}, #{title} ,#{content})
+</insert>
+
+<!-- 의미가 없어진 것 같은 아이디 체크  -->
+<select id="checkReceiver" parameterType="String" resultType="int">
+	SELECT 
+		COUNT(MEM_ID)
+	FROM 
+		MEMBER
+	WHERE
+		MEM_ID = #{memId}
+		AND
+		MVI_STATUS = 'mvi01'
+</select>
+
+<!-- 받은 쪽지함(최근 부터) -->
+<select id ="getReceiveMessage" parameterType = "map" resultType = "messageVO">
+    SELECT
+        T.MSG_SEQ, 
+        T.SENDER, 
+        T.RECEIVER, 
+        T.TITLE,
+        CASE 
+            WHEN LENGTH(T.CONTENT) > 15 THEN SUBSTR(T.CONTENT, 1, 15) || '...'
+            ELSE T.CONTENT
+        END AS CONTENT,  
+        T.SEND_DT,
+        T.READ_YN
+    FROM (
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY SEND_DT DESC) AS RNUM,
+            MSG_SEQ, 
+            SENDER, 
+            RECEIVER, 
+            TITLE,
+            CONTENT,
+            SEND_DT,
+            READ_YN 
+        FROM MESSAGE
+        WHERE
+        	RECEIVE_DEL = 'N'
+        	AND 
+            RECEIVER = #{receiver}
+            <include refid="whereSender"></include> 
+        <!-- ORDER BY SEND_DT DESC -->
+    ) T
+    WHERE T.RNUM BETWEEN ((#{receivePage}*10)- (10-1)) AND (#{receivePage}*10)
+    ORDER BY T.SEND_DT DESC
+</select>
+
+<!-- 받은 쪽지함 날짜 오름차순 -->
+<select id ="getReceiveMessageAsc" parameterType = "map" resultType = "messageVO">
+    SELECT
+        T.MSG_SEQ, 
+        T.SENDER, 
+        T.RECEIVER, 
+        T.TITLE,
+        CASE 
+            WHEN LENGTH(T.CONTENT) > 15 THEN SUBSTR(T.CONTENT, 1, 15) || '...'
+            ELSE T.CONTENT
+        END AS CONTENT,  
+        T.SEND_DT,
+        T.READ_YN
+    FROM (
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY SEND_DT ASC) AS RNUM,
+            MSG_SEQ, 
+            SENDER, 
+            RECEIVER, 
+            TITLE,
+            CONTENT,
+            SEND_DT,
+            READ_YN 
+        FROM MESSAGE
+        WHERE
+        	RECEIVE_DEL = 'N'
+        	AND 
+            RECEIVER = #{receiver}
+            <include refid="whereSender"></include>
+        <!-- ORDER BY SEND_DT -->
+    ) T
+    WHERE T.RNUM BETWEEN ((#{receivePage}*10)- (10-1)) AND (#{receivePage}*10)
+    ORDER BY T.SEND_DT
+</select>
+
+<!-- 보낸 쪽지함 -->
+<select id="getSendMessage" parameterType = "map" resultType="messageVO">
+    SELECT
+        T.MSG_SEQ, 
+        T.SENDER, 
+        T.RECEIVER, 
+        T.TITLE,
+        CASE 
+            WHEN LENGTH(T.CONTENT) > 15 THEN SUBSTR(T.CONTENT, 1, 15) || '...'
+            ELSE T.CONTENT
+        END AS CONTENT,  
+        T.SEND_DT,
+        T.READ_YN
+    FROM (
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY SEND_DT DESC) AS RNUM,
+            MSG_SEQ, 
+            SENDER, 
+            RECEIVER, 
+            TITLE,
+            CONTENT,
+            SEND_DT,
+            READ_YN 
+        FROM MESSAGE
+        WHERE
+        	SEND_DEL = 'N'
+        	AND 
+            SENDER = #{sender}
+            <include refid="whereReceiver"></include>
+       	<!-- ORDER BY SEND_DT DESC --> 
+    ) T
+    WHERE T.RNUM BETWEEN ((#{sendPage}*10)- (10-1)) AND (#{sendPage}*10)
+    ORDER BY T.SEND_DT DESC
+</select>
+
+
+<!-- 보낸 쪽지함 옛날 거부터 -->
+<select id="getSendMessageAsc" parameterType = "map" resultType="messageVO">
+    SELECT
+        T.MSG_SEQ, 
+        T.SENDER, 
+        T.RECEIVER, 
+        T.TITLE,
+        CASE 
+            WHEN LENGTH(T.CONTENT) > 15 THEN SUBSTR(T.CONTENT, 1, 15) || '...'
+            ELSE T.CONTENT
+        END AS CONTENT,  
+        T.SEND_DT,
+        T.READ_YN
+    FROM (
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY SEND_DT ASC) AS RNUM,
+            MSG_SEQ, 
+            SENDER, 
+            RECEIVER, 
+            TITLE,
+            CONTENT,
+            SEND_DT,
+            READ_YN 
+        FROM MESSAGE
+        WHERE
+        	SEND_DEL = 'N'
+        	AND 
+            SENDER = #{sender}
+            <include refid="whereReceiver"></include>
+        <!-- ORDER BY SEND_DT -->
+    ) T
+    WHERE T.RNUM BETWEEN ((#{sendPage}*10)- (10-1)) AND (#{sendPage}*10)
+    ORDER BY T.SEND_DT
+</select>
+
+
+<!-- 보낸 쪽지함(안 읽은거) -->
+<select id="readCheckAsc" parameterType = "map" resultType="messageVO">
+    SELECT
+        T.MSG_SEQ, 
+        T.SENDER, 
+        T.RECEIVER, 
+        T.TITLE,
+        CASE 
+            WHEN LENGTH(T.CONTENT) > 15 THEN SUBSTR(T.CONTENT, 1, 15) || '...'
+            ELSE T.CONTENT
+        END AS CONTENT,  
+        T.SEND_DT,
+        T.READ_YN
+    FROM (
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY SEND_DT DESC) AS RNUM,
+            MSG_SEQ, 
+            SENDER, 
+            RECEIVER, 
+            TITLE,
+            CONTENT,
+            SEND_DT,
+            READ_YN 
+        FROM MESSAGE
+        WHERE
+        	SEND_DEL = 'N'
+        	AND 
+            SENDER = #{sender}
+            <include refid="whereReceiver"></include>
+        ORDER BY READ_YN 
+    ) T
+    WHERE T.RNUM BETWEEN ((#{sendPage}*10)- (10-1)) AND (#{sendPage}*10)
+</select>
+
+
+<!-- 보낸 쪽지함(읽은거) -->
+<select id="readCheckDesc" parameterType = "map" resultType="messageVO">
+    SELECT
+        T.MSG_SEQ, 
+        T.SENDER, 
+        T.RECEIVER, 
+        T.TITLE,
+        CASE 
+            WHEN LENGTH(T.CONTENT) > 15 THEN SUBSTR(T.CONTENT, 1, 15) || '...'
+            ELSE T.CONTENT
+        END AS CONTENT,  
+        T.SEND_DT,
+        T.READ_YN
+    FROM (
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY SEND_DT DESC) AS RNUM,
+            MSG_SEQ, 
+            SENDER, 
+            RECEIVER, 
+            TITLE,
+            CONTENT,
+            SEND_DT,
+            READ_YN 
+        FROM MESSAGE
+        WHERE
+        	SEND_DEL = 'N'
+        	AND 
+            SENDER = #{sender}
+            <include refid="whereReceiver"></include>
+        <!-- ORDER BY READ_YN DESC --> 
+    ) T
+    WHERE T.RNUM BETWEEN ((#{sendPage}*10)- (10-1)) AND (#{sendPage}*10)
+    ORDER BY T.SEND_DT DESC
+</select>
+
+
+<!-- 쪽지 상세  -->
+<select id="msgDetail" parameterType = "int" resultType = "messageVO">
+	SELECT 
+		SENDER,
+		RECEIVER, 
+		TITLE, 
+		CONTENT, 
+		SEND_DT
+	FROM
+		MESSAGE
+	WHERE
+		MSG_SEQ = #{msgSeq}
+</select>
+
+
+<!-- 받은 쪽지 수  -->
+<select id="receiveCount" parameterType = "map" resultType = "int">
+	SELECT
+		COUNT(*)
+	FROM
+		MESSAGE
+	WHERE
+		RECEIVER = #{receiver}
+		AND
+		RECEIVE_DEL = 'N'
+		<include refid="whereSender"></include>
+</select>
+
+
+<!-- 받은 쪽지 수  -->
+<select id="receiveNotReadCount" parameterType = "String" resultType = "int">
+	SELECT
+		COUNT(*)
+	FROM
+		MESSAGE
+	WHERE
+		RECEIVER = #{receiver}
+		AND
+		RECEIVE_DEL = 'N'
+		AND
+		READ_YN = 'N'
+</select>
+
+
+
+<!-- 보낸 쪽지 수  -->
+<select id="sendCount" parameterType = "map" resultType = "int">
+	SELECT
+		COUNT(*)
+	FROM
+		MESSAGE
+	WHERE
+		SENDER = #{sender}
+		AND
+		SEND_DEL = 'N'
+		<include refid="whereReceiver"></include>
+</select>
+
+
+
+<update id="readCheck" parameterType="map">
+	UPDATE MESSAGE
+	SET 
+		READ_YN = 'Y'
+	WHERE 
+		MSG_SEQ = #{msgSeq}
+		AND
+		RECEIVER = #{receiver}
+</update>
+
+<!-- 받은 쪽지함에서 삭제 -->
+<update id = "receiveDel" parameterType="int">
+	UPDATE MESSAGE
+	SET
+		RECEIVE_DEL = 'Y'
+	WHERE
+		MSG_SEQ = #{msgSeq}	
+</update>
+
+<!-- 보낸 쪽지함에서 삭제 -->
+<update id = "sendDel" parameterType="int">
+	UPDATE MESSAGE
+	SET
+		SEND_DEL = 'Y'
+	WHERE
+		MSG_SEQ = #{msgSeq}	
+</update>
+</mapper>

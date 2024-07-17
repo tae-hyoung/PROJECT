@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homecat.sweethome.mapper.vote.VoteMapper">
+
+	<sql id="where">
+		<if test="keyword!=null and keyword!='' ">
+			AND (VOTE_TITLE LIKE '%' || #{keyword} || '%')
+		</if>
+	</sql>
+	
+	
+	<!-- 전체 목록 -->
+	<select id="getTotal" parameterType="hashMap" resultType="int">
+		SELECT COUNT(*)
+		FROM VOTE
+		WHERE 1 = 1
+		<include refid="where"/>
+	</select>
+	
+	
+	<!-- 설문 목록 -->
+	<select id="getList" resultType="voteVO" parameterType="hashMap">
+		SELECT T.*
+		FROM
+		(
+			SELECT ROW_NUMBER() OVER(ORDER BY VOTE_CODE) RNUM,
+				VOTE_CODE, 
+				VOTE_TITLE, 
+				COUNT, 
+				TO_CHAR(BEGIN_TM, 'YYYY/MM/DD') BEGIN_TM, 
+				TO_CHAR(END_TM, 'YYYY/MM/DD') END_TM, 
+				END_YN
+			FROM VOTE
+			WHERE 1 = 1
+			<include refid="where" />
+		) T
+		WHERE T.RNUM BETWEEN ((#{currentPage}*10) - (10-1)) AND (#{currentPage}*10)
+	</select>
+	
+	
+	<!-- 투표 만들기(관리자)  -->
+	<insert id="createPost" parameterType="voteVO">
+		INSERT INTO VOTE(VOTE_CODE, VOTE_TITLE, COUNT, BEGIN_TM, END_TM, END_YN)
+		VALUES(
+		    (SELECT 'VOTE' || LPAD(COALESCE(TO_NUMBER(SUBSTR(MAX(VOTE_CODE), 5)), 0) + 1, 3, '0') FROM VOTE),
+		    #{voteTitle}, #{count} , TO_DATE(#{beginTm}, 'YYYY/MM/DD"T"HH24:MI'), TO_DATE(#{endTm}, 'YYYY/MM/DD"T"HH24:MI'), 'N'
+		)
+	</insert>
+	
+	
+	<!-- 투표 마감 -->
+	<update id="closeVote" parameterType="String">
+		UPDATE VOTE SET END_YN = 'Y'
+		WHERE VOTE_CODE = #{voteCode}
+	</update>
+	
+	
+	<!-- 투표 상세 등록 VOTE_DETAIL 테이블에 -->
+	<insert id="insertDetail" parameterType="voteDetailVO">
+		MERGE INTO VOTE_DETAIL A
+		USING DUAL
+		   ON (A.VD_CODE = #{vdCode} AND VOTE_CODE = #{voteCode})
+		 WHEN MATCHED THEN
+		      UPDATE
+		         SET A.VD_ITEM = #{vdItem}
+		         <if test="attach!=null and attach!=''">
+		         , A.ATTACH = #{attach}
+		         </if>
+		 WHEN NOT MATCHED THEN
+		      INSERT (VD_CODE, VOTE_CODE, VD_ITEM
+		      <if test="attach!=null and attach!=''">
+		      , ATTACH
+		      </if>
+		      )
+		      VALUES (#{vdCode}, #{voteCode}, #{vdItem}
+		      <if test="attach!=null and attach!=''">
+		      , #{attach}
+		      </if>
+		      )
+	</insert>
+	
+	<!-- voteDetailArrange : 찌꺼기 제거(마지막 복합키 데이터를 파라미터로 던짐) -->
+	<delete id="voteDetailArrange" parameterType="voteDetailVO">
+		DELETE FROM VOTE_DETAIL
+		WHERE  VOTE_CODE = #{voteCode}
+		AND    VD_CODE > #{vdCode}
+	</delete>
+	
+	<!-- 투표번호 가져오기 -->
+	<select id="getVoteCode" resultType="String">
+		SELECT VOTE_CODE
+		FROM VOTE
+		WHERE VOTE_TITLE = #{voteTitle}
+	</select>
+	
+
+	<!-- VD_CODE 생성 -->
+	<select id="makeVdCode" parameterType="map" resultType="String">
+	    SELECT 'VD_' || LPAD(COALESCE(TO_NUMBER(SUBSTR(MAX(VD_CODE), 4)), 0) + 1, 3, '0')
+	    FROM VOTE_DETAIL
+	    WHERE VOTE_CODE = #{voteCode}
+	</select>
+
+	
+	<!-- 투표 정보 가져오기 -->
+	<select id="getVoteByCode" parameterType="String" resultType="voteVO">
+		SELECT VOTE_CODE, VOTE_TITLE, COUNT, BEGIN_TM, END_TM, END_YN
+		FROM VOTE
+		WHERE VOTE_CODE = #{voteCode}
+	</select>
+	
+	
+	<!-- 투표 상세 정보 가져오기 -->
+	<select id="getDetailsByCode" parameterType="String" resultType="voteDetailVO">
+		SELECT VD_CODE, VOTE_CODE, VD_ITEM, ATTACH
+		FROM VOTE_DETAIL
+		WHERE VOTE_CODE = #{voteCode}
+		ORDER BY VD_CODE ASC
+	</select>
+	
+	
+	<!-- VOTE_DETAIL 테이블의 데이터 삭제(수정을 위해기존 데이터 삭제) -->
+	<delete id="voteDetailDelete" parameterType="String">
+		DELETE FROM VOTE_DETAIL
+		WHERE VOTE_CODE = #{voteCode}
+	</delete>
+	
+	
+	<!-- 투표 수정 -->
+	<update id="updatePost" parameterType="voteVO">
+		UPDATE VOTE
+		SET VOTE_TITLE = #{voteTitle},
+			BEGIN_TM = TO_DATE(#{beginTm}, 'YYYY/MM/DD"T"HH24:MI'), 
+        	END_TM = TO_DATE(#{endTm}, 'YYYY/MM/DD"T"HH24:MI'),
+        	END_YN = 'N'
+        WHERE VOTE_CODE = #{voteCode}
+	</update>
+	
+	
+	<!-- 투표삭제 -->
+	<delete id="voteDelete" parameterType="voteVO">
+		DELETE FROM VOTE
+		WHERE VOTE_CODE = #{voteCode}
+	</delete>
+	
+	
+	<!-- 설문 결과 등록 -->
+	<insert id="insertResult" parameterType="voteResultVO">
+		INSERT INTO VOTE_RESULT (VR_SEQ, REPLYER, VD_CODE, REPLY, REG_DT, VOTE_CODE)
+		VALUES(
+			(SELECT 'VR_' || LPAD(COALESCE(MAX(TO_NUMBER(SUBSTR(VR_SEQ, 4))), 0) + 1, 3, '0') 
+	         FROM VOTE_RESULT),
+	         #{replyer},
+	         #{vdCode},
+	         #{reply},
+	         SYSDATE,
+	         #{voteCode}
+		)
+	</insert>
+	
+	
+	<!-- 결과 조회 -->
+	<select id="searchResult" resultType="voteResultVO">
+		SELECT VR_SEQ, REPLYER, VD_CODE, REPLY, TO_CHAR(REG_DT,'YYYY/MM/DD') REG_DT, VOTE_CODE
+		FROM VOTE_RESULT
+		WHERE VOTE_CODE = #{voteCode}
+		ORDER BY VR_SEQ ASC
+	</select>
+	
+	
+	<!-- 투표자 목록 가져오기 -->
+	<select id="getReplyerList" resultType="String">
+		SELECT REPLYER, VD_CODE, VOTE_CODE
+		FROM VOTE_RESULT
+		WHERE VOTE_CODE = #{voteCode}
+	</select>
+	
+	
+	<!-- 참여자 수 구하기 -->
+	<update id="participantCnt" parameterType="String">
+		UPDATE VOTE SET
+		COUNT = COUNT + 1
+		WHERE
+		VOTE_CODE = #{voteCode}
+	</update>
+	
+	
+	<!-- 제출 목록 중복 방지 -->
+	<select id="getSubmitVoteUser" parameterType="String" resultType="String">
+		SELECT VOTE_CODE
+		FROM VOTE_RESULT
+		WHERE REPLYER = #{memId}
+	</select>
+	
+	<select id="homeCnt" resultType="voteVO">
+		SELECT
+		    vote_code
+		  , end_yn
+		FROM
+		    vote
+	</select>
+
+</mapper>

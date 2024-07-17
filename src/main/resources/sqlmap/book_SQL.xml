@@ -1,0 +1,413 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper
+	namespace="com.homecat.sweethome.mapper.publicFacilities.BookMapper">
+
+
+	<sql id="where">
+		<if test="keyword!=null and keyword!='' ">
+			AND (title LIKE '%'|| #{keyword} ||'%'
+			OR writer LIKE '%'||
+			#{keyword} ||'%'
+			OR book_cat LIKE '%'|| #{keyword} ||'%'
+			OR publisher
+			LIKE '%'|| #{keyword} ||'%'
+			OR status LIKE '%'|| #{keyword} ||'%')
+		</if>
+	</sql>
+	
+
+
+	<!--책 리스트 -->
+	<select id="bookList" resultType="bookVO" parameterType="hashMap">
+		SELECT T.*
+		FROM
+		(
+		SELECT ROW_NUMBER() OVER(ORDER BY book_code desc) RNUM ,
+		book_code
+		, book_cat
+		, intro
+		, title
+		, writer
+		, publisher
+		, total_page
+		, status
+		, attach
+		, delyn
+		FROM book
+		WHERE 1 = 1
+		<include refid="where"></include>
+		
+		) T
+		WHERE T.RNUM BETWEEN ((#{currentPage}*10) - (10-1)) AND
+		(#{currentPage} *10)
+       	AND delyn = 'N'
+		
+	</select>
+
+
+	<!--총 책 몇개 -->
+	<select id="getTotal" parameterType="hashMap" resultType="int">
+		select count(*)
+		from book
+		where 1=1
+		and delyn = 'N'
+		<include refid="where"></include>
+	</select>
+	
+	
+	<!--총 대여 몇개 -->
+	<select id="getTotal2" parameterType="hashMap" resultType="int">
+		select count(*)
+		from book_loan
+		where 1=1
+	</select>
+
+	<!--책 대여 -->
+	<insert id="rentalAjax" parameterType="bookLoanVO">
+		INSERT INTO book_loan (
+		    loan_seq
+		    , book_code
+		    , mem_id
+		    , loan_dt
+		    , return_status
+		) VALUES (
+		    (select substr(replace(sysdate,'/'),-6) ||  (SELECT nvl(LPAD(MAX(SUBSTR(LOAN_SEQ,7) + 1), 4,0),'0001') FROM book_loan)  from dual)
+		  , #{bookCode}
+		  , #{memId}
+		  , sysdate
+		  , '대출중'
+		)
+	</insert>
+	
+	<!--책 대여시 상태 업데이트 -->
+	<update id="stateAjax" parameterType="bookVO">
+		UPDATE book
+		SET STATUS = '대출중'
+		where book_code = #{bookCode}
+	</update>
+	
+	<!--대여중인 내역 체크 -->
+	<select id="checkmem" parameterType="string" resultType="int">
+	    SELECT COUNT(mem_Id)
+	    FROM book_loan
+	    WHERE mem_id = #{memId}
+	    AND (RETURN_STATUS = '대출중' OR RETURN_STATUS = '연체')
+	</select>
+	
+	<!--책 삭제-->
+	<update id="bookDelAjax" parameterType="bookVO">
+		update book
+		set delyn = 'Y'
+		where book_code = #{bookCode}
+	</update>
+	
+	
+	<!--책 수정-->
+	<update id="bookUpAjax" parameterType="bookVO">
+			UPDATE book
+			SET
+				 book_cat = #{bookCat}
+				, intro = #{intro}
+				, publisher = #{publisher}
+				, title = #{title}
+				, total_page = #{totalPage}
+				, writer = #{writer}
+			<if test="attach!=null and attach!=''">
+	     		,#{attach} 
+	  		</if>
+			where
+				book_code = #{bookCode}
+	</update>
+	
+ 	
+ 	<resultMap type="bookLoanVO" id="bookLoanMap">
+ 		<result property="rnum" column="RNUM"/>
+ 		<result property="totalReBook" column="totalReBook"/>
+ 		<result property="loanCount" column="loanCount"/>
+ 		<result property="loanSeq" column="LOAN_SEQ"/>
+		<result property="bookCode" column="BOOK_CODE"/>
+		<result property="memId" column="MEM_ID"/>
+		<result property="loanDt" column="LOAN_DT"/>
+		<result property="returnDt" column="RETURN_DT"/>
+		<result property="returnStatus" column="RETURN_STATUS"/>
+		<result property="rentDay" column="RENT_DAY"/>
+		<collection property="memList" resultMap="mamMap"></collection>
+		<collection property="roomList" resultMap="roomMap"></collection>
+		<collection property="bookList" resultMap="bookMap"></collection>
+ 	</resultMap>
+ 
+ 	<resultMap type="memberVO" id="mamMap">
+ 		<result property="memId" column="MEM_ID"/>
+		<result property="roomCode" column="ROOM_CODE"/>
+		<result property="memPw" column="MEM_PW"/>
+		<result property="memNm" column="MEM_NM"/>
+		<result property="memBirth" column="MEM_BIRTH"/>
+		<result property="memSex" column="MEM_SEX"/>
+		<result property="memTelno" column="MEM_TELNO"/>
+		<result property="memEmail" column="MEM_EMAIL"/>
+		<result property="nickname" column="NICKNAME"/>
+		<result property="regDt" column="REG_DT"/>
+		<result property="mviStatus" column="MVI_STATUS"/>
+		<result property="profImg" column="PROF_IMG"/>
+		<result property="hshldrId" column="HSHLDR_ID"/>
+ 	</resultMap>
+ 	
+ 	<resultMap type="roomVO" id="roomMap">
+ 		<result property="roomCode" column="ROOM_CODE"/>
+		<result property="dongCode" column="DONG_CODE"/>
+		<result property="floorArea" column="FLOOR_AREA"/>
+ 	</resultMap>
+ 	
+ 	<resultMap type="bookVO" id="bookMap">
+ 		<result property="bookCode" column="BOOK_CODE"/>
+		<result property="bookCat" column="BOOK_CAT"/>
+		<result property="intro" column="INTRO"/>
+		<result property="title" column="TITLE"/>
+		<result property="writer" column="WRITER"/>	
+		<result property="publisher" column="PUBLISHER"/>
+		<result property="totalPage" column="TOTAL_PAGE"/>
+		<result property="status" column="STATUS"/>
+		<result property="attach" column="ATTACH"/>
+		<result property="delyn" column="DELYN"/>	
+ 	</resultMap>
+ 
+ 	<sql id="where2">
+		<if test="keyword!=null and keyword!='' ">
+			AND (b.loan_seq LIKE '%'|| #{keyword} ||'%'
+			OR b.book_code LIKE '%'|| #{keyword} ||'%'
+			OR a.title LIKE '%'|| #{keyword} ||'%'
+			OR m.mem_id LIKE '%'|| #{keyword} ||'%'
+			OR b.return_status LIKE '%'|| #{keyword} ||'%')
+		</if>
+	</sql>
+ 
+ 	<!--책 대여 리스트 -->
+	<select id="rentalList" resultMap="bookLoanMap" parameterType="bookLoanVO">
+		with t as(
+			SELECT row_number() over(order by b.loan_seq asc)  RNUM
+			          , b.loan_seq
+					  , b.book_code
+					  , a.title
+					  , b.mem_id
+					  , to_char(b.loan_dt, 'YYYY/MM/DD HH24:MI') loan_dt
+					  , to_char(b.return_dt, 'YYYY/MM/DD HH24:MI') return_dt
+					  , b.return_status
+					  , m.mem_nm
+					  , m.mem_telno
+              		  ,(select substr(c.room_code,10) from member c where c.mem_id = b.mem_id) roomCode
+            		  ,(select substr(d.room_code,6,3) from member d where d.mem_id = b.mem_id) dongCode
+			FROM  book_loan  b,  member m , book a
+			where 1 = 1 
+			and b.mem_id = m.mem_id
+			and a.book_code = b.book_code
+			<include refid="where2"></include>
+		) 
+		select t.*
+		from   t
+		where  t.rnum between (#{currentPage}*10)-(10-1) and (#{currentPage}*10)
+	</select>
+	
+	<!--책 연체 카운트 -->
+	<update id="lateRet">
+        <![CDATA[
+        UPDATE BOOK_LOAN
+        SET RETURN_STATUS = '연체'
+        WHERE LOAN_DT < SYSDATE - 7
+        AND RETURN_DT IS NULL
+        ]]>
+    </update>
+	
+	
+	<!-- 인기순위 -->	
+	<select id="loanCount" resultMap="bookLoanMap" parameterType="bookLoanVO">
+		SELECT   
+            rnum,
+            book_code,
+	        title,
+	        attach,
+	        loanCount
+		FROM (
+		    SELECT  
+		         ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) AS RNUM,
+		        a.book_Code, 
+		        b.title,
+		        b.attach,  
+		        COUNT(*) AS loanCount
+		    FROM 
+		        book_loan a
+		    JOIN 
+		        book b 
+		    ON 
+		        a.book_code = b.book_code
+		    GROUP BY 
+		        a.book_Code, 
+		        b.title, 
+		        b.attach
+		)
+		<![CDATA[
+		WHERE RNUM <= 10 
+		]]> 
+	</select>
+	
+	
+	<!--책 반납시 상태 엄데이트 -->
+	<update id="retUpdate"  parameterType="bookLoanVO">
+		  UPDATE book_loan 
+		  SET return_dt = SYSDATE, 
+		      return_status = '반납완료'
+		  WHERE book_code = #{bookCode}
+	</update>
+	
+	<update id="boUpdate"  parameterType="bookVO">
+		  UPDATE book 
+		  SET status = '대출가능'
+		  WHERE book_code = #{bookCode}
+	</update>
+
+
+	<!--대여 현황 상세 -->
+	<select id="reDetail" parameterType="bookLoanVO"  resultMap="bookLoanMap">
+		   select
+	             b.loan_seq
+	              , b.book_code
+	              , a.title
+	              , b.mem_id
+	              , to_char(b.loan_dt, 'YYYY/MM/DD HH24:MI') loan_dt
+	              , to_char(b.return_dt, 'YYYY/MM/DD HH24:MI') return_dt
+	              , b.return_status
+	              , a.status
+	              , a.attach
+	              , m.mem_nm
+	              , m.mem_telno
+	              ,(select substr(c.room_code,10) from member c where c.mem_id = b.mem_id) ROOM_CODE
+	              ,(select substr(d.room_code,6,3) from member d where d.mem_id = b.mem_id) DONG_CODE
+		    FROM book_loan  b,  member m , book a
+		    where b.mem_id = m.mem_id
+		    and    a.book_code = b.book_code
+		    and b.loan_seq = #{loanSeq}	
+	</select>
+
+	
+	<!--책 코드 자동 생성 -->
+	<select id="getBookCode" resultType="String">
+		select  ( 'Book' || lpad(max(substr(Book_Code,5))+1,4,0) ) book_code  
+		from book
+	</select>
+
+
+	<!--책 등록 -->
+	<insert id="createAjax"  parameterType="bookVO" >
+		INSERT INTO book (
+		     title
+		    , book_code
+		    , book_cat
+		    , writer
+		    , intro
+		    , publisher
+		    , total_page
+		    , status
+		    , delyn
+		) VALUES (
+		   #{title} 
+		  ,#{bookCode} 
+		  ,#{bookCat} 
+		  ,#{writer} 
+		  ,#{intro} 
+		  ,#{publisher} 
+		  ,#{totalPage}
+		  , '대출가능'
+		  , 'N'
+		)
+	</insert>
+	
+	<!--책 등록 시 파일명 업데이트 -->
+	<update id="updateFileName" parameterType="attachVO">
+		UPDATE book
+		SET ATTACH = #{fileName}
+		WHERE BOOK_CODE = substr(#{globalCode},1,8)
+	</update>	
+	
+	<!--책 대여 리스트 -->
+	<select id="myRentalList" parameterType="String" resultMap="bookLoanMap">
+		SELECT
+		    l.loan_seq
+		  , l.book_code
+		  , l.mem_id
+          , to_char(l.loan_dt, 'YYYY/MM/DD HH24:MI') loan_dt
+          , to_char(l.return_dt, 'YYYY/MM/DD HH24:MI') return_dt
+		  , l.return_status
+        
+         ,b.BOOK_CAT
+         ,b.INTRO
+         ,b.TITLE
+         ,b.WRITER
+		FROM
+		    book_loan l , book b
+		where  l.book_code = b.book_code
+		and  mem_id = #{memId}
+		order by l.return_status desc
+	</select>	
+	
+	<!--연체 건수 체크 -->
+	<select id="cntDanger" resultType="int" parameterType="String">
+		select count(return_status)
+		from book_loan
+		where return_status = '연체' 
+		<if test="!memId.equals('admin')">
+		and mem_id = #{memId}
+		</if>
+	</select>
+	
+
+	
+	
+	<!-- 보유 통계 -->
+	<select id="catCnt" resultType="bookVO">
+		SELECT
+		    book_cat,
+		    COUNT(*) AS totalbook
+		FROM
+		    book
+		WHERE
+		    delyn = 'N'
+		GROUP BY
+		    book_cat 
+	</select>
+	
+	
+	<!-- 대여 통계 -->
+	<select id="reCatCnt" resultMap="bookLoanMap">
+		SELECT
+		    b.book_cat,
+		    COUNT(*) AS totalReBook
+		FROM
+		    book b , book_loan bl
+		WHERE b.book_code = bl.book_code
+		and    delyn = 'N'
+		GROUP BY
+		    book_cat 
+	</select>
+	
+	
+	<!-- //////////////////캘린더////////////////////// -->
+	<select id="rentList" parameterType="bookLoanVO" resultMap="bookLoanMap" >
+		SELECT
+		   A. LOAN_SEQ
+		  , A.BOOK_CODE
+		  , A.MEM_ID
+		  , to_char(A.loan_dt, 'YYYY-MM-DD HH24:MI') loan_dt
+		  , to_char(A.LOAN_DT + 6, 'YYYY-MM-DD HH24:MI') RENT_DAY
+		  , A.RETURN_STATUS
+		  , B.TITLE
+		FROM
+		    BOOK_LOAN A LEFT JOIN BOOK B
+		    ON A.BOOK_CODE = B.BOOK_CODE
+		WHERE 
+		    A.MEM_ID = #{memId}
+		AND A.RETURN_STATUS  !='반납완료' 
+	
+	</select>
+	
+	
+</mapper>

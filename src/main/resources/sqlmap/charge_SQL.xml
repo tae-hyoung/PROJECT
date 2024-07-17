@@ -1,0 +1,428 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homecat.sweethome.mapper.charge.ChargeMapper">
+
+	<sql id="where">
+		<if test="keyword!=null and keyword!='' ">
+		    	AND (YM LIKE '%'|| #{keyword} ||'%'
+		            OR ROOM_CODE LIKE '%'|| #{keyword} ||'%'
+		    		OR PAY_DT LIKE '%'||#{keyword} || '%'
+		    		OR PAY_YN LIKE '%'||#{keyword} || '%')
+		</if>
+	</sql>
+
+	<select id="getDongList" resultType="string">
+		SELECT DONG_CODE FROM DONG
+		WHERE SUBSTR(DONG_CODE, 1, 4) = #{danji}
+	</select>
+
+	<select id="getRoomList" resultType="string">
+		SELECT ROOM_CODE FROM ROOM
+		WHERE DONG_CODE = #{dongCode}
+		ORDER BY ROOM_CODE
+	</select>
+	
+	<insert id="insertChargeInfo" parameterType="hashMap">
+		INSERT INTO MGMT_COST(MGMT_SEQ, ROOM_CODE, YM, TOTAL_CT, PAY_YN, PAY_DT, LATE_CT)
+		VALUES((SELECT 'CHARGE' || TRIM(TO_CHAR(SUBSTR(NVL(MAX(MGMT_SEQ), 'CHARGE00000'), 7) + 1, '00000'))
+				FROM MGMT_COST), #{roomCode}, #{ym}, #{totalCt}, 'N', null, 0)
+	</insert>
+	
+	<insert id="insertCommons" parameterType="hashMap">
+		INSERT INTO GMGMT_CT(GMGMT_SEQ, SALARY, ALLOWANCE, BONUS, RTR_PAY, IAC_INS, EMP_INS, NPN, HLTH_INS, BENEFITS, OPROD_CT, 
+	                    		PRINT_CT, TSPT_CT, COMM_CT, POST_CT, CPROD_CT, ETC_CT, FAC_CT, OTHER_CT, TOTAL_CT, MGMT_SEQ)
+		VALUES((SELECT 'COMMON' || TRIM(TO_CHAR(SUBSTR(NVL(MAX(GMGMT_SEQ), 'COMMON00000'), 7) + 1, '00000'))
+	        	FROM GMGMT_CT), #{salary}, #{allowance}, #{bonus}, #{rtrPay}, #{iacIns}, #{empIns}, #{npn}, #{hlthIns}, #{benefits}, #{oprodCt}, #{printCt}, #{tsptCt}, #{commCt}, #{postCt}, #{cprodCt}, #{etcCt}, #{facCt}, #{otherCt}, #{totalCt}, (SELECT MAX(MGMT_SEQ) FROM MGMT_COST))
+	</insert>
+	
+	<insert id="insertCommonsReason" parameterType="hashMap">
+		INSERT INTO GMGMT_B(GMGMT_SEQ, SALARY, ALLOWANCE, BONUS, RTR_PAY, IAC_INS, EMP_INS, NPN, HLTH_INS, BENEFITS, OPROD_CT, 
+	                    	PRINT_CT, TSPT_CT, COMM_CT, POST_CT, CPROD_CT, ETC_CT, FAC_CT, OTHER_CT)
+		VALUES((SELECT MAX(GMGMT_SEQ) FROM GMGMT_CT), #{salary}, #{allowance}, #{bonus}, #{rtrPay}, #{iacIns}, #{empIns}, #{npn}, #{hlthIns}, #{benefits}, #{oprodCt}, #{printCt}, #{tsptCt}, #{commCt}, #{postCt}, #{cprodCt}, #{etcCt}, #{facCt}, #{otherCt})
+	</insert>
+	
+	<insert id="insertCleans" parameterType="hashMap">
+		INSERT INTO CLN_CT(CLN_SEQ, CLN_SVC_CT, EXPENDABLE_CT, WASTE_CT, OTHER_CT, TOTAL_CT, MGMT_SEQ)
+		VALUES((SELECT 'CLN' || TRIM(TO_CHAR(SUBSTR(NVL(MAX(CLN_SEQ), 'CLN00000'), 4) + 1, '00000'))
+		        FROM CLN_CT), #{clnSvcCt}, #{expendableCt}, #{wasteCt}, #{otherCt}, #{totalCt}, (SELECT MAX(MGMT_SEQ) FROM MGMT_COST))
+	</insert>
+	
+	<insert id="insertCleansReason" parameterType="hashMap">
+		INSERT INTO CLN_B(CLN_SEQ, CLN_SVC_CT, EXPENDABLE_CT, WASTE_CT, OTHER_CT)
+		VALUES((SELECT MAX(CLN_SEQ) FROM CLN_CT), #{clnSvcCt}, #{expendableCt}, #{wasteCt}, #{otherCt})
+	</insert>
+	
+	<insert id="insertDisinfec" parameterType="hashMap">
+		INSERT INTO DINF_CT(DISINF_SEQ, DISINF_CT, OTHER_CT, TOTAL_CT, MGMT_SEQ)
+		VALUES((SELECT 'DISINF' || TRIM(TO_CHAR(SUBSTR(NVL(MAX(DISINF_SEQ), 'DISINF00000'), 7) + 1, '00000'))
+		        FROM DINF_CT), #{disinfCt}, #{otherCt}, #{totalCt}, (SELECT MAX(MGMT_SEQ) FROM MGMT_COST))
+	</insert>
+	
+	<insert id="insertDisinfecReason" parameterType="hashMap">
+		INSERT INTO DINF_B(DISINF_SEQ, DISINF_CT, OTHER_CT)
+		VALUES((SELECT MAX(DISINF_SEQ) FROM DINF_CT), #{disinfCt}, #{otherCt})
+	</insert>
+	
+	<insert id="insertSecure" parameterType="hashMap">
+		INSERT INTO SEC_CT(SEC_SEQ, SEC_CT, OTHER_CT, TOTAL_CT, MGMT_SEQ)
+		VALUES((SELECT 'SEC' || TRIM(TO_CHAR(SUBSTR(NVL(MAX(SEC_SEQ), 'SEC00000'), 4) + 1, '00000'))
+		        FROM SEC_CT), #{secCt}, #{otherCt}, #{totalCt}, (SELECT MAX(MGMT_SEQ) FROM MGMT_COST))
+	</insert>
+	
+	<insert id="insertSecureReason" parameterType="hashMap">
+		INSERT INTO SEC_B(SEC_SEQ, SEC_CT, OTHER_CT)
+		VALUES((SELECT MAX(SEC_SEQ) FROM SEC_CT), #{secCt}, #{otherCt})
+	</insert>
+	
+	<insert id="insertElevator" parameterType="hashMap">
+		INSERT INTO EVT_CT(EVT_SEQ, MGMT_CT, INSP_CT, EXPENDABLE_CT, OTHER_CT, TOTAL_CT, MGMT_SEQ)
+		VALUES((SELECT 'EVT' || TRIM(TO_CHAR(SUBSTR(NVL(MAX(EVT_SEQ), 'EVT00000'), 4) + 1, '00000'))
+		        FROM EVT_CT), #{mgmtCt}, #{inspCt}, #{expendableCt}, #{otherCt}, #{totalCt}, (SELECT MAX(MGMT_SEQ) FROM MGMT_COST))
+	</insert>
+	
+	<insert id="insertElevatorReason" parameterType="hashMap">
+		INSERT INTO EVT_B(EVT_SEQ, MGMT_CT, INSP_CT, EXPENDABLE_CT, OTHER_CT)
+		VALUES((SELECT MAX(EVT_SEQ) FROM EVT_CT), #{mgmtCt}, #{inspCt}, #{expendableCt}, #{otherCt})
+	</insert>
+	
+	<insert id="insertLtrr" parameterType="hashMap">
+		INSERT INTO LTRR_CT(LTRR_SEQ, LTRR_CT, OTHER_CT, TOTAL_CT, MGMT_SEQ)
+		VALUES((SELECT 'LTRR' || TRIM(TO_CHAR(SUBSTR(NVL(MAX(LTRR_SEQ), 'LTRR00000'), 5) + 1, '00000'))
+		        FROM LTRR_CT), #{ltrrCt}, #{otherCt}, #{totalCt}, (SELECT MAX(MGMT_SEQ) FROM MGMT_COST))
+	</insert>
+	
+	<insert id="insertLtrrReason" parameterType="hashMap">
+		INSERT INTO LTRR_B(LTRR_SEQ, LTRR_CT, OTHER_CT)
+		VALUES((SELECT MAX(LTRR_SEQ) FROM LTRR_CT), #{ltrrCt}, #{otherCt})
+	</insert>
+	
+	<insert id="insertFacilites" parameterType="hashMap">
+		INSERT INTO FMGMT_CT(FMGMT_SEQ, MGMT_CT, CHK_CT, PRVNT_CT, OTHER_CT, TOTAL_CT, MGMT_SEQ)
+		VALUES((SELECT 'FAC' || TRIM(TO_CHAR(SUBSTR(NVL(MAX(FMGMT_SEQ), 'FAC00000'), 4) + 1, '00000'))
+		        FROM FMGMT_CT), #{mgmtCt}, #{chkCt}, #{prvntCt}, #{otherCt}, #{totalCt}, (SELECT MAX(MGMT_SEQ) FROM MGMT_COST))
+	</insert>
+	
+	<insert id="insertFacilitesReason" parameterType="hashMap">
+		INSERT INTO FMGMT_B(FMGMT_SEQ, MGMT_CT, CHK_CT, PRVNT_CT, OTHER_CT)
+		VALUES((SELECT MAX(FMGMT_SEQ) FROM FMGMT_CT), #{mgmtCt}, #{chkCt}, #{prvntCt}, #{otherCt})
+	</insert>
+	
+	<insert id="insertVat" parameterType="hashMap">
+		INSERT INTO VAT(VAT_SEQ, MSVC_CT, CSVC_CT, SSVC_CT, OTHER_CT, TOTAL_CT, MGMT_SEQ)
+		VALUES((SELECT 'VAT' || TRIM(TO_CHAR(SUBSTR(NVL(MAX(VAT_SEQ), 'VAT00000'), 4) + 1, '00000'))
+		        FROM VAT), #{msvcCt}, #{csvsCt}, #{ssvcCt}, #{otherCt}, #{totalCt}, (SELECT MAX(MGMT_SEQ) FROM MGMT_COST))
+	</insert>
+	
+	<insert id="insertVatReason" parameterType="hashMap">
+		INSERT INTO VAT_B(VAT_SEQ, MSVC_CT, CSVC_CT, SSVC_CT, OTHER_CT)
+		VALUES((SELECT MAX(VAT_SEQ) FROM VAT), #{msvcCt}, #{csvsCt}, #{ssvcCt}, #{otherCt})
+	</insert>
+	
+	<insert id="insertConsignments" parameterType="hashMap">
+		INSERT INTO CMGMT_CT(CMGMT_SEQ, CMGMT_CT, OTHER_CT, TOTAL_CT, MGMT_SEQ)
+		VALUES((SELECT 'CNSM' || TRIM(TO_CHAR(SUBSTR(NVL(MAX(CMGMT_SEQ), 'CNSM00000'), 5) + 1, '00000'))
+		        FROM CMGMT_CT), #{cmgmtCt}, #{otherCt}, #{totalCt}, (SELECT MAX(MGMT_SEQ) FROM MGMT_COST))
+	</insert>
+	
+	<insert id="insertConsignmentsReason" parameterType="hashMap">
+		INSERT INTO CMGMT_B(CMGMT_SEQ, CMGMT_CT, OTHER_CT)
+		VALUES((SELECT MAX(CMGMT_SEQ) FROM CMGMT_CT), #{cmgmtCt}, #{otherCt})
+	</insert>
+	
+	<insert id="insertMeeting" parameterType="hashMap">
+		INSERT INTO MEETING_CT(MEETING_SEQ, CB_CT, AB_CT, ATTDC_CT, OPERATION_CT, OTHER_CT, TOTAL_CT, MGMT_SEQ)
+		VALUES((SELECT 'MEET' || TRIM(TO_CHAR(SUBSTR(NVL(MAX(MEETING_SEQ), 'MEET00000'), 5) + 1, '00000'))
+		        FROM MEETING_CT), #{cbCt}, #{abCt}, #{attdcCt}, #{operationCt}, #{otherCt}, #{totalCt}, (SELECT MAX(MGMT_SEQ) FROM MGMT_COST))
+	</insert>
+	
+	<insert id="insertMeetingReason" parameterType="hashMap">
+		INSERT INTO MEETING_B(MEETING_SEQ, CB_CT, AB_CT, ATTDC_CT, OPERATION_CT, OTHER_CT)
+		VALUES((SELECT MAX(MEETING_SEQ) FROM MEETING_CT), #{cbCt}, #{abCt}, #{attdcCt}, #{operationCt}, #{otherCt})
+	</insert>
+	
+	<insert id="insertBuilding" parameterType="hashMap">
+		INSERT INTO BINSR_CT(BINSR_SEQ, BINSR_CT, NOTE, MGMT_SEQ)
+		VALUES((SELECT 'BINSR' || TRIM(TO_CHAR(SUBSTR(NVL(MAX(BINSR_SEQ), 'BINSR00000'), 6) + 1, '00000'))
+		        FROM BINSR_CT), #{binsrCt}, #{note}, (SELECT MAX(MGMT_SEQ) FROM MGMT_COST))
+	</insert>
+	
+	<insert id="insertElectrocity" parameterType="hashMap">
+		INSERT INTO ELEC_CT(ELEC_SEQ, SELEC_CT, IELEC_CT, TOTAL_CT, MGMT_SEQ)
+		VALUES((SELECT 'ELEC' || TRIM(TO_CHAR(SUBSTR(NVL(MAX(ELEC_SEQ), 'ELEC00000'), 5) + 1, '00000'))
+		        FROM ELEC_CT), #{selectCt}, #{ielectCt}, #{totalCt}, (SELECT MAX(MGMT_SEQ) FROM MGMT_COST))
+	</insert>
+	
+	<insert id="insertSharedElec" parameterType="hashMap">
+		INSERT INTO SELEC_DET(ELEC_SEQ, USAGE, PRICE)
+		VALUES((SELECT MAX(ELEC_SEQ) FROM ELEC_CT), #{usage}, #{price})
+	</insert>
+	
+	<insert id="insertIndividualElec" parameterType="hashMap">
+		INSERT INTO IELEC_DET(ELEC_SEQ, USAGE, PRICE)
+		VALUES((SELECT MAX(ELEC_SEQ) FROM ELEC_CT), #{usage}, #{price})
+	</insert>
+	
+	<insert id="insertWater" parameterType="hashMap">
+		INSERT INTO WATER_CT(WATER_SEQ, SWATER_CT, IWATER_CT, TOTAL_CT, MGMT_SEQ)
+		VALUES((SELECT 'WATER' || TRIM(TO_CHAR(SUBSTR(NVL(MAX(WATER_SEQ), 'WATER00000'), 6) + 1, '00000'))
+		        FROM WATER_CT), #{swaterCt}, #{iwaterCt}, #{totalCt}, (SELECT MAX(MGMT_SEQ) FROM MGMT_COST))
+	</insert>
+	
+	<insert id="insertSharedWater" parameterType="hashMap">
+		INSERT INTO SWATER_DET(WATER_SEQ, USAGE, PRICE)
+		VALUES((SELECT MAX(WATER_SEQ) FROM WATER_CT), #{usage}, #{price})
+	</insert>
+	
+	<insert id="insertIndividualWater" parameterType="hashMap">
+		INSERT INTO IWATER_DET(WATER_SEQ, USAGE, PRICE)
+		VALUES((SELECT MAX(WATER_SEQ) FROM WATER_CT), #{usage}, #{price})
+	</insert>
+	
+	<insert id="insertHeating" parameterType="hashMap">
+		INSERT INTO HEATING_CT(HEAT_SEQ, SHEAT_CT, IHEAT_CT, TOTAL_CT, MGMT_SEQ)
+		VALUES((SELECT 'HEAT' || TRIM(TO_CHAR(SUBSTR(NVL(MAX(HEAT_SEQ), 'HEAT00000'), 5) + 1, '00000'))
+		        FROM HEATING_CT), #{sheatCt}, #{iheatCt}, #{totalCt}, (SELECT MAX(MGMT_SEQ) FROM MGMT_COST))
+	</insert>
+	
+	<insert id="insertSharedHeating" parameterType="hashMap">
+		INSERT INTO SHEAT_DET(HEAT_SEQ, USAGE, PRICE)
+		VALUES((SELECT MAX(HEAT_SEQ) FROM HEATING_CT), #{usage}, #{price})
+	</insert>
+	
+	<insert id="insertIndividualHeating" parameterType="hashMap">
+		INSERT INTO IHEAT_DET(HEAT_SEQ, USAGE, PRICE)
+		VALUES((SELECT MAX(HEAT_SEQ) FROM HEATING_CT), #{usage}, #{price})
+	</insert>
+	
+	<select id="getChargeList" parameterType="string" resultType="chargeItemVO">
+	    SELECT T.* FROM(
+			SELECT ROW_NUMBER() OVER(ORDER BY YM DESC, ROOM_CODE) RNUM, MGMT_SEQ, ROOM_CODE, YM, TOTAL_CT TOTAL_CHARGE, PAY_YN, TO_CHAR(PAY_DT, 'YYYY/MM/DD HH24:MI:SS') PAY_DT, LATE_CT
+			FROM MGMT_COST
+			WHERE ROOM_CODE LIKE #{danjiCode}||'_%'
+			<if test="payYn != null and payYn == true ">
+				AND PAY_YN = 'N'
+			</if>
+			<include refid="where"></include>
+		) T
+		WHERE T.RNUM BETWEEN ((#{currentPage}*10) - (10-1)) AND (#{currentPage}*10)
+	</select>
+	
+	<select id="getTotal" parameterType="hashMap" resultType="int">
+		SELECT COUNT(*)
+		FROM MGMT_COST
+		WHERE ROOM_CODE LIKE #{danjiCode}||'_%'
+		<if test="payYn != null and payYn == true ">
+			AND PAY_YN = 'N'
+		</if>
+		<include refid="where"></include>
+	</select>
+	
+	<select id="getInfo" parameterType="hashMap" resultType="chargeItemVO">
+		SELECT A.ROOM_CODE, A.YM, A.TOTAL_CT TOTAL_CHARGE, A.PAY_YN, A.PAY_DT, A.LATE_CT,
+			CT1.TOTAL_CT COMMONS, CT1.SALARY, CT1.ALLOWANCE, CT1.BONUS, CT1.RTR_PAY, CT1.IAC_INS, CT1.EMP_INS, CT1.NPN, CT1.HLTH_INS, CT1.BENEFITS, CT1.OPROD_CT, CT1.PRINT_CT, CT1.TSPT_CT, CT1.COMM_CT, CT1.POST_CT, CT1.CPROD_CT, CT1.ETC_CT, CT1.FAC_CT, CT1.OTHER_CT COMMONS_OTHER_CT, 
+		    B1.SALARY SALARY_REASON, B1.ALLOWANCE ALLOWANCE_REASON, B1.BONUS BONUS_REASON, B1.RTR_PAY RTR_PAY_REASON, B1.IAC_INS IAC_INS_REASON, B1.EMP_INS EMP_INS_REASON, B1.NPN NPN_REASON, B1.HLTH_INS HLTH_INS_REASON, B1.BENEFITS BENEFITS_REASON, B1.OPROD_CT OPROD_CT_REASON, B1.PRINT_CT PRINT_CT_REASON, B1.TSPT_CT TSPT_CT_REASON, B1.COMM_CT COMM_CT_REASON, B1.POST_CT POST_CT_REASON, B1.CPROD_CT CPROD_CT_REASON, B1.ETC_CT ETC_CT_REASON, B1.FAC_CT FAC_CT_REASON, B1.OTHER_CT COMMONS_OTHER_CT_REASON,
+		    CT2.TOTAL_CT CLEANING, CT2.CLN_SVC_CT, CT2.EXPENDABLE_CT, CT2.WASTE_CT, CT2.OTHER_CT CLEANING_OTHER_CT, B2.CLN_SVC_CT CLN_SVC_CT_REASON, B2.EXPENDABLE_CT EXPENDABLE_CT_REASON, B2.WASTE_CT WASTE_CT_REASON, B2.OTHER_CT CLEANING_OTHER_CT_REASON,
+		    CT3.TOTAL_CT DISINFEC, CT3.DISINF_CT DISINFEC_CT, CT3.OTHER_CT DISINFEC_OTHER_CT, B3.DISINF_CT DISINFEC_CT_REASON, B3.OTHER_CT DISINFEC_OTHER_CT_REASON,
+		    CT4.TOTAL_CT SECURE, CT4.SEC_CT, CT4.OTHER_CT SEC_OTHER_CT, B4.SEC_CT SEC_CT_REASON, B4.OTHER_CT SEC_OTHER_CT_REASON,
+		    CT5.TOTAL_CT ELEVATOR, CT5.MGMT_CT EVT_MGMT_CT, CT5.INSP_CT EVT_INSP_CT, CT5.EXPENDABLE_CT EVT_EXPENDABLE_CT, CT5.OTHER_CT EVT_OTHER_CT, B5.MGMT_CT EVT_MGMT_CT_REASON, B5.INSP_CT EVT_INSP_CT_REASON, B5.EXPENDABLE_CT EVT_EXPENDABLE_CT_REASON, B5.OTHER_CT EVT_OTHER_CT_REASON,
+		    CT6.TOTAL_CT LTRR, CT6.LTRR_CT, CT6.OTHER_CT LTRR_OTHER_CT, B6.LTRR_CT LTRR_CT_REASON, B6.OTHER_CT LTRR_OTHER_CT_REASON,
+		    CT7.TOTAL_CT FACILITIES, CT7.MGMT_CT FACILITY_MGMT_CT, CT7.CHK_CT FACILITY_CHK_CT, CT7.PRVNT_CT PREVENT_CT, CT7.OTHER_CT FACILITIES_OTHER_CT, B7.MGMT_CT FACILITY_MGMT_CT_REASON, B7.CHK_CT FACILITY_CHK_CT_REASON, B7.PRVNT_CT PREVENT_CT_REASON, B7.OTHER_CT FACILITY_OTHER_CT_REASON,
+		    CT8.TOTAL_CT VAT, CT8.MSVC_CT, CT8.CSVC_CT, CT8.SSVC_CT, CT8.OTHER_CT VAT_OTHER_CT, B8.MSVC_CT MSVC_CT_REASON, B8.CSVC_CT CSVC_CT_REASON, B8.SSVC_CT SSVC_CT_REASON, B8.OTHER_CT VAT_OTHER_CT_REASON,
+		    CT9.TOTAL_CT CONSIGNMENT, CT9.CMGMT_CT CONSIGNMENT_CT, CT9.OTHER_CT CONSIGNMENT_OTHER_CT, B9.CMGMT_CT CONSIGNMENT_CT_REASON, B9.OTHER_CT CONSIGNMENT_OTHER_CT_REASON,
+		    CT10.TOTAL_CT MEETING, CT10.CB_CT, CT10.AB_CT, CT10.ATTDC_CT, CT10.OPERATION_CT, CT10.OTHER_CT MEETING_OTHER_CT, B10.CB_CT CB_CT_REASON, B10.AB_CT AB_CT_REASON, B10.ATTDC_CT ATTDC_CT_REASON, B10.OPERATION_CT OPERATION_CT_REASON, B10.OTHER_CT MEETING_OTHER_CT_REASON,
+		    CT11.BINSR_CT BUILDINGINSR, CT11.NOTE BUILDING_NOTE,
+		    CT12.TOTAL_CT ELECTROCITY, CT12.SELEC_CT SHARED_ELEC, CT12.IELEC_CT INDIVIDUAL_ELEC,
+		    CT13.TOTAL_CT WATER, CT13.SWATER_CT SHARED_WATER, CT13.IWATER_CT INDIVIDUAL_WATER,
+		    CT14.TOTAL_CT HEATING, CT14.SHEAT_CT SHARED_HEATING, CT14.IHEAT_CT INDIVIDUAL_HEATING,
+		    SDET12.USAGE SH_ELEC_USAGE, SDET12.PRICE SH_ELEC_PRICE, IDET12.USAGE IDV_ELEC_USAGE, IDET12.PRICE IDV_ELEC_PRICE,
+		    SDET13.USAGE SH_WATER_USAGE, SDET13.PRICE SH_WATER_PRICE, IDET13.USAGE IDV_WATER_USAGE, IDET13.PRICE IDV_WATER_PRICE,
+		    SDET14.USAGE SH_HEATING_USAGE, SDET14.PRICE SH_HEATING_PRICE, IDET14.USAGE IDV_HEATING_USAGE, IDET14.PRICE IDV_HEATING_PRICE
+		FROM MGMT_COST A, GMGMT_CT CT1, GMGMT_B B1, CLN_CT CT2, CLN_B B2, DINF_CT CT3, DINF_B B3, SEC_CT CT4, SEC_B B4, EVT_CT CT5, EVT_B B5, LTRR_CT CT6, LTRR_B B6, FMGMT_CT CT7, FMGMT_B B7, VAT CT8, VAT_B B8, CMGMT_CT CT9, CMGMT_B B9, MEETING_CT CT10, MEETING_B B10, BINSR_CT CT11, ELEC_CT CT12, SELEC_DET SDET12, IELEC_DET IDET12, WATER_CT CT13, SWATER_DET SDET13, IWATER_DET IDET13, HEATING_CT CT14, SHEAT_DET SDET14, IHEAT_DET IDET14
+		WHERE A.ROOM_CODE = #{roomCode}
+			<if test="ym != null and ym != ''">
+   			AND A.YM = #{ym}
+ 			</if> 
+			<if test="year != null and year != ''">
+   			AND A.YM LIKE #{year} || '%'
+ 			</if> 
+		    AND CT1.GMGMT_SEQ = B1.GMGMT_SEQ        AND CT1.MGMT_SEQ = A.MGMT_SEQ          
+		    AND CT2.CLN_SEQ = B2.CLN_SEQ            AND CT2.MGMT_SEQ = A.MGMT_SEQ          
+		    AND CT3.DISINF_SEQ = B3.DISINF_SEQ      AND CT3.MGMT_SEQ = A.MGMT_SEQ          
+		    AND CT4.SEC_SEQ = B4.SEC_SEQ            AND CT4.MGMT_SEQ = A.MGMT_SEQ          
+		    AND CT5.EVT_SEQ = B5.EVT_SEQ            AND CT5.MGMT_SEQ = A.MGMT_SEQ          
+		    AND CT6.LTRR_SEQ = B6.LTRR_SEQ          AND CT6.MGMT_SEQ = A.MGMT_SEQ          
+		    AND CT7.FMGMT_SEQ = B7.FMGMT_SEQ        AND CT7.MGMT_SEQ = A.MGMT_SEQ          
+		    AND CT8.VAT_SEQ = B8.VAT_SEQ            AND CT8.MGMT_SEQ = A.MGMT_SEQ          
+		    AND CT9.CMGMT_SEQ = B9.CMGMT_SEQ        AND CT9.MGMT_SEQ = A.MGMT_SEQ          
+		    AND CT10.MEETING_SEQ = B10.MEETING_SEQ  AND CT10.MGMT_SEQ = A.MGMT_SEQ
+		    AND CT11.MGMT_SEQ = A.MGMT_SEQ         
+		    AND CT12.ELEC_SEQ = SDET12.ELEC_SEQ     AND CT12.ELEC_SEQ = IDET12.ELEC_SEQ		AND CT12.MGMT_SEQ = A.MGMT_SEQ             
+		    AND CT13.WATER_SEQ = SDET13.WATER_SEQ	AND CT13.WATER_SEQ = IDET13.WATER_SEQ	AND CT13.MGMT_SEQ = A.MGMT_SEQ         
+		    AND CT14.HEAT_SEQ = SDET14.HEAT_SEQ     AND CT14.HEAT_SEQ = IDET14.HEAT_SEQ    	AND CT14.MGMT_SEQ = A.MGMT_SEQ        
+        ORDER BY A.YM DESC
+	</select>
+
+	<select id="adminGetInfo" parameterType="hashMap" resultType="chargeItemVO">
+		SELECT A.ROOM_CODE, A.YM, A.TOTAL_CT TOTAL_CHARGE, A.PAY_YN, A.PAY_DT, A.LATE_CT,
+			CT1.TOTAL_CT COMMONS, CT1.SALARY, CT1.ALLOWANCE, CT1.BONUS, CT1.RTR_PAY, CT1.IAC_INS, CT1.EMP_INS, CT1.NPN, CT1.HLTH_INS, CT1.BENEFITS, CT1.OPROD_CT, CT1.PRINT_CT, CT1.TSPT_CT, CT1.COMM_CT, CT1.POST_CT, CT1.CPROD_CT, CT1.ETC_CT, CT1.FAC_CT, CT1.OTHER_CT COMMONS_OTHER_CT, 
+		    B1.SALARY SALARY_REASON, B1.ALLOWANCE ALLOWANCE_REASON, B1.BONUS BONUS_REASON, B1.RTR_PAY RTR_PAY_REASON, B1.IAC_INS IAC_INS_REASON, B1.EMP_INS EMP_INS_REASON, B1.NPN NPN_REASON, B1.HLTH_INS HLTH_INS_REASON, B1.BENEFITS BENEFITS_REASON, B1.OPROD_CT OPROD_CT_REASON, B1.PRINT_CT PRINT_CT_REASON, B1.TSPT_CT TSPT_CT_REASON, B1.COMM_CT COMM_CT_REASON, B1.POST_CT POST_CT_REASON, B1.CPROD_CT CPROD_CT_REASON, B1.ETC_CT ETC_CT_REASON, B1.FAC_CT FAC_CT_REASON, B1.OTHER_CT COMMONS_OTHER_CT_REASON,
+		    CT2.TOTAL_CT CLEANING, CT2.CLN_SVC_CT, CT2.EXPENDABLE_CT, CT2.WASTE_CT, CT2.OTHER_CT CLEANING_OTHER_CT, B2.CLN_SVC_CT CLN_SVC_CT_REASON, B2.EXPENDABLE_CT EXPENDABLE_CT_REASON, B2.WASTE_CT WASTE_CT_REASON, B2.OTHER_CT CLEANING_OTHER_CT_REASON,
+		    CT3.TOTAL_CT DISINFEC, CT3.DISINF_CT DISINFEC_CT, CT3.OTHER_CT DISINFEC_OTHER_CT, B3.DISINF_CT DISINFEC_CT_REASON, B3.OTHER_CT DISINFEC_OTHER_CT_REASON,
+		    CT4.TOTAL_CT SECURE, CT4.SEC_CT, CT4.OTHER_CT SEC_OTHER_CT, B4.SEC_CT SEC_CT_REASON, B4.OTHER_CT SEC_OTHER_CT_REASON,
+		    CT5.TOTAL_CT ELEVATOR, CT5.MGMT_CT EVT_MGMT_CT, CT5.INSP_CT EVT_INSP_CT, CT5.EXPENDABLE_CT EVT_EXPENDABLE_CT, CT5.OTHER_CT EVT_OTHER_CT, B5.MGMT_CT EVT_MGMT_CT_REASON, B5.INSP_CT EVT_INSP_CT_REASON, B5.EXPENDABLE_CT EVT_EXPENDABLE_CT_REASON, B5.OTHER_CT EVT_OTHER_CT_REASON,
+		    CT6.TOTAL_CT LTRR, CT6.LTRR_CT, CT6.OTHER_CT LTRR_OTHER_CT, B6.LTRR_CT LTRR_CT_REASON, B6.OTHER_CT LTRR_OTHER_CT_REASON,
+		    CT7.TOTAL_CT FACILITIES, CT7.MGMT_CT FACILITY_MGMT_CT, CT7.CHK_CT FACILITY_CHK_CT, CT7.PRVNT_CT PREVENT_CT, CT7.OTHER_CT FACILITIES_OTHER_CT, B7.MGMT_CT FACILITY_MGMT_CT_REASON, B7.CHK_CT FACILITY_CHK_CT_REASON, B7.PRVNT_CT PREVENT_CT_REASON, B7.OTHER_CT FACILITY_OTHER_CT_REASON,
+		    CT8.TOTAL_CT VAT, CT8.MSVC_CT, CT8.CSVC_CT, CT8.SSVC_CT, CT8.OTHER_CT VAT_OTHER_CT, B8.MSVC_CT MSVC_CT_REASON, B8.CSVC_CT CSVC_CT_REASON, B8.SSVC_CT SSVC_CT_REASON, B8.OTHER_CT VAT_OTHER_CT_REASON,
+		    CT9.TOTAL_CT CONSIGNMENT, CT9.CMGMT_CT CONSIGNMENT_CT, CT9.OTHER_CT CONSIGNMENT_OTHER_CT, B9.CMGMT_CT CONSIGNMENT_CT_REASON, B9.OTHER_CT CONSIGNMENT_OTHER_CT_REASON,
+		    CT10.TOTAL_CT MEETING, CT10.CB_CT, CT10.AB_CT, CT10.ATTDC_CT, CT10.OPERATION_CT, CT10.OTHER_CT MEETING_OTHER_CT, B10.CB_CT CB_CT_REASON, B10.AB_CT AB_CT_REASON, B10.ATTDC_CT ATTDC_CT_REASON, B10.OPERATION_CT OPERATION_CT_REASON, B10.OTHER_CT MEETING_OTHER_CT_REASON,
+		    CT11.BINSR_CT BUILDINGINSR, CT11.NOTE BUILDING_NOTE,
+		    CT12.TOTAL_CT ELECTROCITY, CT12.SELEC_CT SHARED_ELEC, CT12.IELEC_CT INDIVIDUAL_ELEC,
+		    CT13.TOTAL_CT WATER, CT13.SWATER_CT SHARED_WATER, CT13.IWATER_CT INDIVIDUAL_WATER,
+		    CT14.TOTAL_CT HEATING, CT14.SHEAT_CT SHARED_HEATING, CT14.IHEAT_CT INDIVIDUAL_HEATING,
+		    SDET12.USAGE SH_ELEC_USAGE, SDET12.PRICE SH_ELEC_PRICE, IDET12.USAGE IDV_ELEC_USAGE, IDET12.PRICE IDV_ELEC_PRICE,
+		    SDET13.USAGE SH_WATER_USAGE, SDET13.PRICE SH_WATER_PRICE, IDET13.USAGE IDV_WATER_USAGE, IDET13.PRICE IDV_WATER_PRICE,
+		    SDET14.USAGE SH_HEATING_USAGE, SDET14.PRICE SH_HEATING_PRICE, IDET14.USAGE IDV_HEATING_USAGE, IDET14.PRICE IDV_HEATING_PRICE
+		FROM MGMT_COST A, GMGMT_CT CT1, GMGMT_B B1, CLN_CT CT2, CLN_B B2, DINF_CT CT3, DINF_B B3, SEC_CT CT4, SEC_B B4, EVT_CT CT5, EVT_B B5, LTRR_CT CT6, LTRR_B B6, FMGMT_CT CT7, FMGMT_B B7, VAT CT8, VAT_B B8, CMGMT_CT CT9, CMGMT_B B9, MEETING_CT CT10, MEETING_B B10, BINSR_CT CT11, ELEC_CT CT12, SELEC_DET SDET12, IELEC_DET IDET12, WATER_CT CT13, SWATER_DET SDET13, IWATER_DET IDET13, HEATING_CT CT14, SHEAT_DET SDET14, IHEAT_DET IDET14
+		WHERE A.ROOM_CODE = #{roomCode}
+   			AND A.YM = #{ym}
+		    AND CT1.GMGMT_SEQ = B1.GMGMT_SEQ        AND CT1.MGMT_SEQ = A.MGMT_SEQ          
+		    AND CT2.CLN_SEQ = B2.CLN_SEQ            AND CT2.MGMT_SEQ = A.MGMT_SEQ          
+		    AND CT3.DISINF_SEQ = B3.DISINF_SEQ      AND CT3.MGMT_SEQ = A.MGMT_SEQ          
+		    AND CT4.SEC_SEQ = B4.SEC_SEQ            AND CT4.MGMT_SEQ = A.MGMT_SEQ          
+		    AND CT5.EVT_SEQ = B5.EVT_SEQ            AND CT5.MGMT_SEQ = A.MGMT_SEQ          
+		    AND CT6.LTRR_SEQ = B6.LTRR_SEQ          AND CT6.MGMT_SEQ = A.MGMT_SEQ          
+		    AND CT7.FMGMT_SEQ = B7.FMGMT_SEQ        AND CT7.MGMT_SEQ = A.MGMT_SEQ          
+		    AND CT8.VAT_SEQ = B8.VAT_SEQ            AND CT8.MGMT_SEQ = A.MGMT_SEQ          
+		    AND CT9.CMGMT_SEQ = B9.CMGMT_SEQ        AND CT9.MGMT_SEQ = A.MGMT_SEQ          
+		    AND CT10.MEETING_SEQ = B10.MEETING_SEQ  AND CT10.MGMT_SEQ = A.MGMT_SEQ
+		    AND CT11.MGMT_SEQ = A.MGMT_SEQ         
+		    AND CT12.ELEC_SEQ = SDET12.ELEC_SEQ     AND CT12.ELEC_SEQ = IDET12.ELEC_SEQ		AND CT12.MGMT_SEQ = A.MGMT_SEQ             
+		    AND CT13.WATER_SEQ = SDET13.WATER_SEQ	AND CT13.WATER_SEQ = IDET13.WATER_SEQ	AND CT13.MGMT_SEQ = A.MGMT_SEQ         
+		    AND CT14.HEAT_SEQ = SDET14.HEAT_SEQ     AND CT14.HEAT_SEQ = IDET14.HEAT_SEQ    	AND CT14.MGMT_SEQ = A.MGMT_SEQ     
+	</select>
+
+	<select id="getLastYm" parameterType="string" resultType="string">
+		SELECT MAX(YM)
+		FROM MGMT_COST
+		WHERE ROOM_CODE = #{roomCode}
+	</select>
+
+	<select id="getAvg" parameterType="hashMap" resultType="double">
+		SELECT AVG(TOTAL_CT)
+		FROM MGMT_COST
+		WHERE ROOM_CODE LIKE SUBSTR(#{roomCode}, 1, 8) || '%'
+		    AND YM = #{ym}
+	</select>	
+	
+	<select id="getPayYN" parameterType="hashMap" resultType="string">
+		SELECT PAY_YN
+		FROM MGMT_COST
+		WHERE ROOM_CODE = #{roomCode}
+			AND YM = #{ym}
+	</select>
+	
+	<update id="payment" parameterType="hashMap">
+		UPDATE MGMT_COST SET 
+		PAY_YN = 'Y', PAY_DT = SYSDATE
+		WHERE ROOM_CODE = #{roomCode}
+			AND YM = #{ym}
+	</update>
+	
+	<select id="getAvgYm" parameterType="String" resultType="hashMap">
+		SELECT YM, AVG(TOTAL_CT) AVG_YM
+		FROM MGMT_COST 
+		WHERE ROOM_CODE LIKE #{danjiCode}||'_%'
+		GROUP BY YM
+		ORDER BY YM
+	</select>
+	
+	<select id="getAvgDong" parameterType="String" resultType="hashMap">
+		SELECT SUBSTR(ROOM_CODE, 1, 8) DONG_CODE, AVG(TOTAL_CT) AVG_DONG 
+		FROM MGMT_COST 
+		WHERE ROOM_CODE LIKE #{danjiCode}||'_%'
+		GROUP BY SUBSTR(ROOM_CODE, 1, 8)
+		ORDER BY SUBSTR(ROOM_CODE, 1, 8)
+	</select>
+	
+	<select id="getUpdDt" resultType="string">
+		SELECT TO_CHAR(MAX(UPD_DT), 'YYYY-MM')
+		FROM MGMT_COST
+	</select>
+	
+	<update id="lateProc">
+		UPDATE MGMT_COST
+		SET LATE_CT = ROUND(TOTAL_CT+TOTAL_CT*0.02*(LATE_CNT+1)), LATE_CNT = LATE_CNT+1, UPD_DT = SYSDATE
+		<![CDATA[
+		WHERE (
+		        TRIM(SUBSTR(YM, 1, 4)) < TRIM(SUBSTR(SYSDATE, 1, 4))
+		    OR (TRIM(SUBSTR(YM, 1, 4)) = TRIM(SUBSTR(SYSDATE, 1, 4)) AND TRIM(SUBSTR(YM, 6, 2)) <= TRIM(SUBSTR(SYSDATE, 6, 2)) )
+		    )
+		    AND PAY_YN = 'N'
+	    ]]>
+	</update>
+	
+<!-- 	<update id="chargeUpdate" parameterType="hashMap"> -->
+<!-- 이거 안짰음~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+<!-- 	</update> -->
+
+
+	<select id="getYearAvg" parameterType="hashMap" resultType="mgmtVO">
+		SELECT YM, SUM(TOTAL_CT) TOTAL_CT, SUM(LATE_CT) LATE_CT
+		FROM (SELECT * FROM MGMT_COST
+		        WHERE ROOM_CODE LIKE #{danjiCode} || '_%')
+		GROUP BY YM
+		HAVING YM LIKE #{year} || '%'
+		ORDER BY YM
+	</select>
+
+	<select id="getYearAvg2" parameterType="hashMap" resultType="com.homecat.sweethome.vo.charge.YearAvgVO">    
+		SELECT AB.*, C.* FROM
+		    (SELECT A.*, B.* FROM 
+		        (SELECT YM, SUM(TOTAL_CT) PAY_CT
+		        FROM (SELECT * FROM MGMT_COST
+		                WHERE ROOM_CODE LIKE #{danjiCode} || '_%'
+		                AND PAY_YN = 'Y')
+		        GROUP BY YM
+		        HAVING YM LIKE #{year} || '%'
+		        ORDER BY YM) A 
+		    LEFT OUTER JOIN
+		        (SELECT YM YM1, SUM(TOTAL_CT) NON_PAY_CT
+		        FROM (SELECT * FROM MGMT_COST
+		                WHERE ROOM_CODE LIKE #{danjiCode} || '_%'
+		                AND PAY_YN = 'N')
+		        GROUP BY YM
+		        HAVING YM LIKE #{year} || '%'
+		        ORDER BY YM) B
+		    ON A.YM = B.YM1) AB
+		    
+		    LEFT OUTER JOIN
+		    
+		    (SELECT YM, SUM(LATE_CT) LATE_CT
+		    FROM (SELECT * FROM MGMT_COST
+		            WHERE ROOM_CODE LIKE #{danjiCode} || '_%')
+		    GROUP BY YM
+		    HAVING YM LIKE #{year} || '%'
+		    ORDER BY YM) C
+		    ON AB.YM = C.YM
+		    
+		ORDER BY AB.YM
+	</select>
+	
+	<select id="getMonthList" parameterType="hashMap" resultType="mgmtVO">
+		SELECT * 
+		FROM MGMT_COST 
+		WHERE YM = #{ym}
+		<if test="danjiCode != '' and dongCode != '' and roomCode != ''">
+			AND ROOM_CODE LIKE #{danjiCode} || '_' || #{dongCode} || '_' || #{roomCode} 
+		</if>
+		<if test="danjiCode != '' and dongCode != '' and roomCode == ''">
+			AND ROOM_CODE LIKE #{danjiCode} || '_' || #{dongCode} || '_%'
+		</if>
+		<if test="danjiCode != '' and dongCode == '' and roomCode != ''">
+			AND ROOM_CODE LIKE #{danjiCode} || '_%_' || #{roomCode} 
+		</if>
+		<if test="danjiCode != '' and dongCode == '' and roomCode == ''">
+			AND ROOM_CODE LIKE #{danjiCode} || '%' 
+		</if>
+	</select>
+</mapper>

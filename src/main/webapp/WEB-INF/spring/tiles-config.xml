@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tiles-definitions PUBLIC 
+"-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN" 
+"http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+<!-- tiles 설정 -->
+<tiles-definitions>
+	
+	<!-- site main layout -->
+	<definition name="site-main-layout" template="/WEB-INF/views/tiles/site/site_main_template.jsp">
+		<put-attribute name="header" value="/WEB-INF/views/tiles/site/header.jsp" />
+		<put-attribute name="banner" value="/WEB-INF/views/tiles/site/banner.jsp" />
+		<put-attribute name="body" value="" />
+		<put-attribute name="footer" value="/WEB-INF/views/tiles/comm/footer.jsp" />
+	</definition>
+	<definition name="*" extends="site-main-layout">
+		<put-attribute name="body" value="/WEB-INF/views/{1}.jsp" />
+	</definition>
+	
+	<!-- site layout -->
+	<definition name="site-layout" template="/WEB-INF/views/tiles/site/site_template.jsp">
+		<put-attribute name="header" value="/WEB-INF/views/tiles/site/header.jsp" />
+		<put-attribute name="aside" value="/WEB-INF/views/tiles/site/aside.jsp" />
+		<put-attribute name="body" value="" />
+		<put-attribute name="footer" value="/WEB-INF/views/tiles/comm/footer.jsp" />
+	</definition>
+	<definition name="site/**" extends="site-layout">
+		<put-attribute name="body" value="/WEB-INF/views/site/{1}.jsp" />
+	</definition>
+	
+<!-- ////////////////////////////////////////////////////////////////////////////////////// -->	
+
+	<!-- resident layout -->
+	<definition name="resident-layout" template="/WEB-INF/views/tiles/template/template.jsp">
+		<put-attribute name="header" value="/WEB-INF/views/tiles/template/header.jsp" />
+		<put-attribute name="sidebar" value="/WEB-INF/views/tiles/template/residentSidebar.jsp" />
+		<put-attribute name="body" value="" />
+		<put-attribute name="footer" value="/WEB-INF/views/tiles/template/footer.jsp" />
+	</definition>
+	<definition name="resident/**" extends="resident-layout">
+		<put-attribute name="body" value="/WEB-INF/views/resident/{1}.jsp" />
+	</definition>
+	
+	<!-- admin layout -->
+	<definition name="admin-layout" template="/WEB-INF/views/tiles/template/template.jsp">
+		<put-attribute name="header" value="/WEB-INF/views/tiles/template/header.jsp" />
+		<put-attribute name="sidebar" value="/WEB-INF/views/tiles/template/adminSidebar.jsp" />
+		<put-attribute name="body" value="" />
+		<put-attribute name="footer" value="/WEB-INF/views/tiles/template/footer.jsp" />
+	</definition>
+	<definition name="admin/**" extends="admin-layout">
+		<put-attribute name="body" value="/WEB-INF/views/admin/{1}.jsp" />
+	</definition>
+	
+	<!-- partner layout -->
+	<definition name="partners-layout" template="/WEB-INF/views/tiles/template/template.jsp">
+		<put-attribute name="header" value="/WEB-INF/views/tiles/template/header.jsp" />
+		<put-attribute name="sidebar" value="/WEB-INF/views/tiles/template/partnerSidebar.jsp" />
+		<put-attribute name="body" value="" />
+		<put-attribute name="footer" value="/WEB-INF/views/tiles/template/footer.jsp" />
+	</definition>
+	<definition name="partners/**" extends="partners-layout">
+		<put-attribute name="body" value="/WEB-INF/views/partners/{1}.jsp" />
+	</definition>
+	
+	
+	<!-- master layout -->
+	<definition name="master-layout" template="/WEB-INF/views/tiles/template/template.jsp">
+		<put-attribute name="header" value="/WEB-INF/views/tiles/template/header.jsp" />
+		<put-attribute name="sidebar" value="/WEB-INF/views/tiles/template/adminSidebar.jsp" />
+		<put-attribute name="body" value="" />
+		<put-attribute name="footer" value="/WEB-INF/views/tiles/template/footer.jsp" />
+	</definition>
+	<definition name="master/**" extends="master-layout">
+		<put-attribute name="body" value="/WEB-INF/views/master/{1}.jsp" />
+	</definition>
+	
+</tiles-definitions>
+

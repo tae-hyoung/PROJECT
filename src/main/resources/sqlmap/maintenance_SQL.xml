@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homecat.sweethome.mapper.maintenance.MaintenanceMapper">
+
+	<resultMap type="maintenanceVO" id="mtMap">
+		<result property="rnum" column="rnum"/>
+		<result property="mtSeq" column="MT_SEQ"/>
+		<result property="mtDetail" column="MT_DETAIL"/>
+		<result property="regDt" column="REG_DT"/>
+		<result property="prcsDt" column="PRCS_DT"/>
+		<result property="mtStatus" column="MT_STATUS"/>
+		<result property="attach" column="ATTACH"/>
+		<result property="memId" column="MEM_ID"/>
+		<result property="ccpyCode" column="CCPY_CODE"/>
+		<result property="cancelYn" column="CANCEL_YN"/>
+		<result property="cancelTm" column="CANCEL_TM"/>
+		<result property="mtConst" column="MT_CONST"/>
+		<result property="mtLocation" column="MT_LOCATION"/>
+		<result property="statusContent" column="STATUS_CONTENT"/>
+		<result property="mtNote" column="MT_NOTE"/>
+		<result property="cnt" column="cnt"/>
+		<association property="commDetailVO" javaType="commDetailVO">
+			<result property="commDetCode" column="COMM_DET_CODE"/>
+			<result property="commDetCodeNm" column="COMM_DET_CODE_NM"/>
+			<result property="commDetCodeDscr" column="COMM_DET_CODE_DSCR"/>
+			<result property="commCode" column="COMM_CODE"/>
+		</association>
+		<association property="memberVO" javaType="memberVO">
+			<result property="memId" column="MEM_ID"/>
+			<result property="roomCode" column="ROOM_CODE"/>
+			<result property="memPw" column="MEM_PW"/>
+			<result property="memNm" column="MEM_NM"/>
+			<result property="memBirth" column="MEM_BIRTH"/>
+			<result property="memSex" column="MEM_SEX"/>
+			<result property="memTelno" column="MEM_TELNO"/>
+			<result property="memEmail" column="MEM_EMAIL"/>
+			<result property="nickname" column="NICKNAME"/>
+			<result property="regDt" column="REG_DT"/>
+			<result property="mviStatus" column="MVI_STATUS"/>
+			<result property="profImg" column="PROF_IMG"/>
+			<result property="hshldrId" column="HSHLDR_ID"/>
+			<result property="memAuth" column="MEM_AUTH"/>
+			<result property="ccpyCode" column="CCPY_CODE"/>
+			<result property="dongCode" column="DONG_CODE"/>
+		</association>
+		<association property="danjiVO" javaType="com.homecat.sweethome.vo.danji.DanjiVO">
+			<result property="danjiName" column="DANJI_NAME"/>
+			<result property="addr" column="ADDR"/>
+		</association>
+		<collection property="ccpyList" ofType="ccpyVO">
+			<result property="ccpyCode" column="CCPY_CODE"/>
+			<result property="ccpyCat" column="CCPY_CAT"/>
+			<result property="ccpyName" column="CCPY_NAME"/>
+			<result property="ccpyTelno" column="CCPY_TELNO"/>
+			<result property="ccpyPost" column="CCPY_POST"/>
+			<result property="ccpyAddr" column="CCPY_ADDR"/>
+			<result property="ccpyAddrDetail" column="CCPY_ADDR_DETAIL"/>
+			<result property="bizRegNo" column="BIZ_REG_NO"/>
+			<result property="cntrDt" column="CNTR_DT"/>
+			<result property="expDt" column="EXP_DT"/>
+		</collection>
+		<collection property="attachList" resultMap="attachMap"></collection>
+	</resultMap>
+		
+	<resultMap type="attachVO" id="attachMap">
+		<result property="attchSeq" column="ATTCH_SEQ"/>
+		<result property="fileName" column="FILE_NAME"/>
+		<result property="fileSize" column="FILE_SIZE"/>
+		<result property="contentType" column="CONTENT_TYPE"/>
+		<result property="regDt" column="REG_DT"/>
+		<result property="delYn" column="DEL_YN"/>
+		<result property="firstRegDt" column="FIRST_REG_DT"/>
+		<result property="firstRegId" column="FIRST_REG_ID"/>
+		<result property="useYn" column="USE_YN"/>
+		<result property="globalCode" column="GLOBAL_CODE"/>
+	</resultMap>
+
+	<select id="list" parameterType="maintenanceVO" resultMap="mtMap">
+		SELECT 
+			ROW_NUMBER() OVER(ORDER BY MT_SEQ ASC) RNUM
+			, MT_SEQ 
+			, MEM_ID
+			, MT_CONST
+			, MT_LOCATION
+			, TO_CHAR(REG_DT, 'YYYY/MM/DD') REG_DT
+			, MT_STATUS
+			, TO_CHAR(PRCS_DT, 'YYYY/MM/DD') PRCS_DT
+			, MT_NOTE
+		FROM
+			MAINTENANCE
+		WHERE MEM_ID = #{memId}
+		ORDER BY RNUM DESC
+	</select>
+
+	<select id="detail" parameterType="maintenanceVO" resultMap="mtMap">
+		SELECT 
+		      A.MT_SEQ 
+		    , B.MEM_NM
+		    , D.DANJI_NAME
+		    , D.ADDR
+		    , SUBSTR(B.ROOM_CODE, 6, 3) AS DONG_CODE    
+		    , SUBSTR(B.ROOM_CODE, 10) AS ROOM_CODE
+		    , B.MEM_TELNO
+		    , A.MT_CONST
+		    , A.MT_DETAIL
+		    , A.MT_LOCATION
+		    , TO_CHAR(A.REG_DT, 'YYYY/MM/DD HH24:MI:SS') REG_DT
+		    , A.MT_STATUS
+		    , TO_CHAR(A.PRCS_DT, 'YYYY-MM-DD') PRCS_DT
+		    , A.STATUS_CONTENT
+		    , C.CCPY_CODE
+		    , C.CCPY_NAME
+		    , C.CCPY_TELNO
+		    , C.CCPY_POST
+		    , C.CCPY_ADDR
+		    , C.CCPY_ADDR_DETAIL
+		    , C.BIZ_REG_NO
+		    , D.FILE_NAME
+		FROM MAINTENANCE A LEFT OUTER JOIN ATTACH D ON(A.ATTACH = D.GLOBAL_CODE)
+		LEFT OUTER JOIN MEMBER B ON A.MEM_ID = B.MEM_ID
+		LEFT OUTER JOIN CCPY C ON A.CCPY_CODE = C.CCPY_CODE
+		LEFT OUTER JOIN DANJI D ON D.DANJI_CODE = SUBSTR(B.ROOM_CODE, 1, 4)
+		WHERE MT_SEQ = #{mtSeq}
+	</select>
+	
+	<select id="getMemberInfo" parameterType="java.lang.String" resultMap="mtMap">
+		SELECT 
+		    A.MEM_NM,
+		    B.DANJI_NAME,
+		    B.ADDR,
+		    SUBSTR(A.ROOM_CODE, 10) AS ROOM_CODE,
+		    SUBSTR(A.ROOM_CODE, 6, 3) AS DONG_CODE,    
+		    A.MEM_TELNO
+		FROM MEMBER A 
+		LEFT OUTER JOIN DANJI B ON B.DANJI_CODE = SUBSTR(A.ROOM_CODE, 1, 4)
+		WHERE MEM_ID = #{memId}
+	</select>
+	
+	<insert id="createPost" parameterType="map">
+		INSERT INTO MAINTENANCE (
+			  MT_SEQ
+			, MT_CONST
+			, MT_LOCATION
+			, MT_DETAIL
+			, MEM_ID
+			, REG_DT
+			, MT_STATUS
+			, ATTACH
+		)
+		VALUES(
+			#{mtSeq},
+			#{mtConst},
+			#{mtLocation},
+			#{mtDetail},
+			#{memId},
+			SYSDATE,
+			'접수완료',
+			#{attach} 
+		)
+	</insert>
+	
+	<!-- 하자접수 일련번호 가져오기 -->
+	<select id="getMtSeq" resultType="String">
+		SELECT 'MT' || LPAD(NVL(MAX(TO_NUMBER(SUBSTR(MT_SEQ, 3))), 0) + 1, 4, '0') AS MT_SEQ
+		FROM MAINTENANCE
+	</select>
+	
+	<update id="updatePost" parameterType="maintenanceVO">
+		UPDATE Maintenance
+		SET 
+			MT_CONST = #{mtConst},
+			MT_LOCATION = #{mtLocation},
+			MT_DETAIL = #{mtDetail}
+			<if test="attach != null and attach != null">
+			,ATTACH = #{attach}
+			</if>
+		WHERE MT_SEQ = #{mtSeq}
+	</update>
+	
+	<delete id="deletePost" parameterType="hashMap">
+		DELETE 
+		FROM MAINTENANCE
+		WHERE MT_SEQ = #{mtSeq}
+	</delete>
+	
+	<!-- /////////////////관리자 페이지///////////////////////////////////////////////////////////////////
+	//입주민 하자보수 신청 내역 -->
+	<select id="adList" parameterType="maintenanceVO" resultMap="mtMap">
+		SELECT 
+			ROW_NUMBER() OVER(ORDER BY A.MT_SEQ ASC) RNUM,
+			A.MT_SEQ,
+			A.MEM_ID,
+			A.MT_CONST,
+			A.MT_LOCATION,
+			TO_CHAR(A.REG_DT, 'YYYY/MM/DD') REG_DT,
+			A.MT_STATUS,
+			TO_CHAR(A.PRCS_DT, 'YYYY/MM/DD') PRCS_DT,
+			A.MT_NOTE,
+			(SELECT FILE_NAME FROM ATTACH B WHERE A.ATTACH = B.GLOBAL_CODE AND ROWNUM = 1) AS FILE_NAME
+		FROM
+			MAINTENANCE A
+		WHERE 1=1
+		<if test="(schMtStatus != null and schMtStatus != '')">
+			AND MT_STATUS = #{schMtStatus}
+		</if>
+		ORDER BY RNUM DESC		
+	</select>
+	
+	<select id="modalDetail" parameterType="maintenanceVO" resultMap="mtMap">
+		SELECT 
+	        A.MT_SEQ  
+	      , B.CCPY_CODE
+		  , B.CCPY_NAME
+		  , B.CCPY_TELNO
+		  , B.CCPY_ADDR
+		  , B.CCPY_ADDR_DETAIL
+		  , B.BIZ_REG_NO  
+	      , C.MEM_NM
+	      , SUBSTR(C.ROOM_CODE, 10) AS ROOM_CODE
+	      , SUBSTR(C.ROOM_CODE, 6, 3) AS DONG_CODE
+	      , C.MEM_TELNO
+	      , A.MT_CONST
+	      , A.MT_LOCATION
+	      , A.MT_DETAIL
+	      , A.MT_STATUS
+	      , A.STATUS_CONTENT
+	      , TO_CHAR(A.PRCS_DT, 'YYYY/MM/DD')PRCS_DT
+	      , A.ATTACH
+	    FROM
+	        MAINTENANCE A
+        LEFT OUTER JOIN CCPY B ON A.CCPY_CODE = B.CCPY_CODE 
+	    LEFT OUTER JOIN MEMBER C ON A.MEM_ID = C.MEM_ID
+<!-- 	    LEFT OUTER JOIN ATTACH D ON A.ATTACH = D.GLOBAL_CODE -->
+	    WHERE A.MT_SEQ = #{mtSeq}
+	</select>
+	
+	<select id="selectAttachList" parameterType="string" resultMap="attachMap">
+		SELECT
+			FILE_NAME
+		FROM ATTACH
+		WHERE GLOBAL_CODE = #{attach}
+	</select>
+	
+	<update id="modalUpdate" parameterType="maintenanceVO">
+		UPDATE MAINTENANCE
+		SET
+			MT_STATUS = #{mtStatus},
+			STATUS_CONTENT = #{statusContent},
+			PRCS_DT = SYSDATE
+		WHERE MT_SEQ = #{mtSeq}
+	</update>
+	
+	<update id="modalUpdate2" parameterType="maintenanceVO">
+			UPDATE MAINTENANCE
+			SET
+				CCPY_CODE = #{ccpyCode}
+			WHERE MT_SEQ = #{mtSeq}
+	</update>
+	
+	<select id="homeCnt" resultType="maintenanceVO">
+		SELECT
+		    mt_seq
+		  , cancel_yn
+		  , MT_STATUS
+		FROM
+		    maintenance
+		where cancel_yn = 'N'
+	</select>
+	
+	<select id="statusCount" resultType="maintenanceVO">
+		SELECT
+			MT_STATUS,
+			COUNT(*) AS CNT
+		FROM
+			MAINTENANCE
+		GROUP BY
+			MT_STATUS
+	</select>
+	
+	
+	<select id="getMemId" parameterType="String" resultType="String">
+		SELECT MEM_ID FROM MAINTENANCE WHERE MT_SEQ = #{mtSeq}
+	</select>
+</mapper>

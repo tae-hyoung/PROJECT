@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homecat.sweethome.mapper.bidnotice.BidNoticeMapper">
+	
+	<!-- 입찰공고 리스트 -->
+	<select id="getList" resultType="com.homecat.sweethome.vo.bidnotice.BidNoticeVO">
+		SELECT 
+	        ROW_NUMBER() OVER (ORDER BY BID_SEQ ASC) RUM
+	        ,A.BID_SEQ
+	        ,A.BID_HOW
+	        ,A.BID_TITLE
+	        ,TO_CHAR(A.BID_OUT_DT, 'YYYY/MM/DD HH24:MI') BID_OUT_DT
+	        ,A.BID_STATUS
+	        ,B.DANJI_NAME
+			,TO_CHAR(A.BID_START_DT, 'YYYY/MM/DD HH24:MI:SS') BID_START_DT
+		FROM
+	        BIDNOTICE A, DANJI B
+		WHERE A.DANJI_CODE = B.DANJI_CODE
+		ORDER BY BID_SEQ DESC
+	</select>
+	
+	<select id="getListTop" resultType="com.homecat.sweethome.vo.bidnotice.BidNoticeVO">
+		SELECT *
+		FROM
+			(SELECT 
+		        ROW_NUMBER() OVER (ORDER BY BID_SEQ DESC) RUM
+		        ,A.BID_SEQ
+		        ,A.BID_HOW
+		        ,A.BID_TITLE
+		        ,TO_CHAR(A.BID_OUT_DT, 'YYYY/MM/DD HH24:MI') BID_OUT_DT
+		        ,A.BID_STATUS
+		        ,B.DANJI_NAME
+				,TO_CHAR(A.BID_START_DT, 'YYYY/MM/DD HH24:MI:SS') BID_START_DT
+			FROM
+		        BIDNOTICE A, DANJI B
+			WHERE A.DANJI_CODE = B.DANJI_CODE)
+		WHERE RUM BETWEEN 1 AND #{num}
+	</select>
+	
+	<!-- 입찰공고 상세보기 -->
+<select id="getDetail" parameterType="com.homecat.sweethome.vo.bidnotice.BidNoticeVO" resultType="com.homecat.sweethome.vo.bidnotice.BidNoticeVO">
+    SELECT
+        A.BID_SEQ,
+        A.DANJI_CODE,
+        A.BID_HOW,
+        A.BID_TITLE,
+        A.BID_CONTENT,
+        A.BID_STATUS,
+        TO_CHAR(A.BID_START_DT, 'YYYY/MM/DD HH24:MI:SS') BID_START_DT,          
+        TO_CHAR(A.BID_OUT_DT, 'YYYY/MM/DD HH24:MI') BID_OUT_DT,
+        A.BID_TYPE,
+        A.BID_EXPLAN,
+        TO_CHAR(A.BID_EXPLAN_DT, 'YYYY/MM/DD HH24:MI') BID_EXPLAN_DT,
+        TO_CHAR(A.BID_DOC_DT, 'YYYY/MM/DD HH24:MI') BID_DOC_DT,
+        A.BID_EMERGENCY,
+        A.BID_SUCCESS_HOW,
+        A.BID_CIR_SUB,
+        A.BID_CPC_SUB,
+        A.BID_LOCATION,
+        A.BID_DEPOSIT,
+        SUBSTR(A.BID_NUM, 1, 3) || '-' || SUBSTR(A.BID_NUM, 4, 3) || '-' || SUBSTR(A.BID_NUM, 7, 4) AS BID_NUM,
+        SUBSTR(A.BID_FAX, 1, 3) || '-' || SUBSTR(A.BID_FAX, 4, 3) || '-' || SUBSTR(A.BID_FAX, 7, 4) AS BID_FAX,
+        A.BID_ATTACH,
+        B.DANJI_NAME,
+        B.ADDR,
+        B.CNT_DONG,
+        B.CNT_TOTAL_ROOM,
+        A.BID_COMPANY,
+        A.BID_CRN,
+        A.BID_CEO,
+        A.BID_CNUM,
+        TO_CHAR(A.BID_BID_DT, 'YYYY-MM-DD') BID_BID_DT,
+        A.BID_EXPLAN_YN,
+        A.BID_DOC_YN,
+        A.BID_BID_DEPOSIT
+    FROM BIDNOTICE A
+    JOIN DANJI B ON A.DANJI_CODE = B.DANJI_CODE
+    WHERE A.BID_SEQ = #{bidSeq}
+</select>
+	
+	<!-- 업데이트 -->
+	<update id="updatePost" parameterType="com.homecat.sweethome.vo.bidnotice.BidNoticeVO">
+		UPDATE BIDNOTICE
+			SET 
+				BID_TITLE = #{bidTitle},
+				BID_CONTENT = #{bidContent},
+				BID_EXPLAN = #{bidExplan},
+                BID_EXPLAN_DT = TO_DATE(#{bidExplanDt},'YYYY/MM/DD HH24:MI'), 
+				BID_LOCATION = #{bidLocation},
+				BID_EMERGENCY = #{bidEmergency},
+				BID_DEPOSIT = #{bidDeposit},
+				BID_CIR_SUB = #{bidCirSub},
+				BID_CPC_SUB = #{bidCpcSub},
+				
+				BID_STATUS = #{bidStatus},
+				BID_COMPANY = #{bidCompany},
+				BID_CRN = #{bidCrn},
+				BID_CEO = #{bidCeo},
+				BID_CNUM = #{bidCnum},
+				BID_BID_DT = TO_DATE(#{bidBidDt},'YYYY/MM/DD'),
+				BID_EXPLAN_YN = #{bidExplanYn},
+				BID_DOC_YN = #{bidDocYn},
+				BID_BID_DEPOSIT = #{bidBidDeposit}
+				
+		WHERE BID_SEQ = #{bidSeq}
+	</update>
+	
+	
+	<!-- 입찰공고 등록 -->
+	<insert id="createPost" parameterType="com.homecat.sweethome.vo.bidnotice.BidNoticeVO">
+	INSERT 
+	INTO BIDNOTICE(BID_TITLE, BID_SEQ, DANJI_CODE, BID_NUM, BID_FAX, BID_HOW,
+				   BID_TYPE, BID_SUCCESS_HOW, BID_EXPLAN, BID_EXPLAN_DT, BID_LOCATION,
+				   BID_CONTENT, BID_DOC_DT, BID_OUT_DT, BID_EMERGENCY, BID_DEPOSIT, BID_CIR_SUB, BID_CPC_SUB,
+				   BID_STATUS, BID_COMPANY, BID_CRN, BID_CEO, BID_CNUM, BID_BID_DT, BID_EXPLAN_YN, BID_DOC_YN, BID_BID_DEPOSIT, BID_ATTACH)
+	VALUES       (#{bidTitle}, #{bidSeq}, #{danjiCode}, #{bidNum}, #{bidFax}, #{bidHow},
+				  #{bidType}, #{bidSuccessHow}, #{bidExplan}, TO_DATE(#{bidExplanDt}, 'YYYY-MM-DD HH24:MI:SS'), #{bidLocation},
+				  #{bidContent}, TO_DATE(#{bidDocDt}, 'YYYY-MM-DD HH24:MI:SS'), TO_DATE(#{bidOutDt}, 'YYYY-MM-DD HH24:MI:SS'), #{bidEmergency}, #{bidDeposit}, #{bidCirSub}, #{bidCpcSub},
+				  #{bidStatus}, #{bidCompany}, #{bidCrn}, #{bidCeo}, #{bidCnum}, TO_DATE(#{bidBidDt}, 'YYYY-MM-DD'), #{bidExplanYn}, #{bidDocYn}, #{bidBidDeposit}, #{bidAttach})
+	</insert>
+	
+	<!-- 입찰공고 삭제 -->
+	<delete id="deletePost" parameterType="com.homecat.sweethome.vo.bidnotice.BidNoticeVO">
+		DELETE 
+		FROM BIDNOTICE
+		WHERE BID_SEQ = #{bidSeq}
+	</delete>
+	
+	
+</mapper>

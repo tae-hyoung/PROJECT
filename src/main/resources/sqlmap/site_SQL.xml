@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homecat.sweethome.mapper.site.SiteMapper">
+
+	<insert id="visit">
+		INSERT INTO VISIT_SITE(IDX, VISIT_TM)
+		VALUES(
+			(SELECT NVL(MAX(IDX), 0) + 1 FROM VISIT_SITE), SYSDATE)
+	</insert>
+
+	<select id="getVisitTotal" resultType="int">
+		SELECT COUNT(*) TOTAL FROM VISIT_SITE
+	</select>
+	<select id="getVisitToday" resultType="int">
+		SELECT COUNT(*) TODAY FROM VISIT_SITE
+		WHERE SUBSTR(VISIT_TM, 1, 11) = SUBSTR(SYSDATE, 1, 11)
+	</select>
+</mapper>

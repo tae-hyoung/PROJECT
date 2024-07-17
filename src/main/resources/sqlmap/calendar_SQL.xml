@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 김미선 개발 -->
+
+<mapper namespace="com.homecat.sweethome.mapper.calendar.CalendarMapper">
+
+	<select id="list" parameterType="hashMap" resultType="calendarVO">
+	/** com.homecat.sweethome.mapper.calendar.CalendarMapper.list :  캘린더 리스트*/
+		select 
+			CAL_SEQ
+			, MEM_ID
+			, CAL_TITLE
+			, TO_CHAR(CAL_START,'YYYY-MM-DD HH24:MI') CAL_START
+			, TO_CHAR(CAL_END,'YYYY-MM-DD HH24:MI') CAL_END
+			, CAL_STIME
+			, CAL_ETIME
+			, CAL_CONTENT
+			, CAL_SORT
+		from calendar
+		where mem_id in (#{memId}, 'admin')
+		<if test="yrmon!=null and yrmon!=''">
+			and   to_char(cal_start,'yyyymm') = #{yrmon}
+			order by cal_start
+		</if>
+	</select>
+	
+	<insert id="addEvent" parameterType="calendarVO" >
+		<selectKey resultType="String" order="BEFORE" keyProperty="calSeq">
+		select 'CAL' || lpad(cal_seq.nextval,4,0) from dual
+		</selectKey>
+		INSERT INTO calendar (
+			CAL_SEQ 
+			, MEM_ID 
+			, CAL_TITLE 
+			, CAL_START 
+			, CAL_END 
+			, CAL_STIME
+			, CAL_ETIME
+			, CAL_CONTENT 
+			, CAL_SORT
+			<if test="resNum!=null and resNum!=''">
+			, RES_NUM
+			</if>
+			<if test="rentNum!=null and rentNum!=''">
+			, RENT_NUM
+			</if>
+			)
+		VALUES (
+			#{calSeq} 
+			, #{memId}
+			, #{calTitle} 
+			, TO_DATE(#{calStart}, 'YYYY-MM-DD HH24:MI') 
+			, TO_DATE(#{calEnd}, 'YYYY-MM-DD HH24:MI')
+			, #{calStime}
+			, #{calEtime}
+			, #{calContent} 
+			, #{calSort} 
+			<if test="resNum!=null and resNum!=''">
+			, #{resNum}
+			</if>
+			<if test="rentNum!=null and rentNum!=''">
+			, #{rentNum}
+			</if>
+			)
+	</insert>
+	
+	
+		<select id="isEventExists" parameterType="calendarVO" resultType="int">
+		    SELECT COUNT(*)
+		    FROM CALENDAR
+		    WHERE 
+		    <if test="resNum != null">
+		        RES_NUM = #{resNum}
+		    </if>
+		    <if test="rentNum != null">
+		        <if test="resNum != null">OR</if> RENT_NUM = #{rentNum}
+		    </if>
+		</select>
+		
+	
+		<select id="detail" parameterType="calendarVO" resultType="calendarVO">
+			select 
+				 CAL_SEQ
+				, MEM_ID
+				, CAL_TITLE
+				, TO_CHAR(CAL_START,'YYYY-MM-DD HH24:MI') CAL_START
+				, TO_CHAR(CAL_END,'YYYY-MM-DD HH24:MI') CAL_END
+				, CAL_STIME
+				, CAL_ETIME
+				, CAL_CONTENT
+				, CAL_SORT
+			from calendar
+			where cal_seq = #{calSeq}
+		</select>
+	
+		<update id="updateEvent" parameterType="calendarVO">
+			update calendar
+			set CAL_TITLE= #{calTitle},   
+				CAL_START = TO_DATE(#{calStart}, 'YYYY-MM-DD HH24:MI'), 
+				CAL_END = TO_DATE(#{calEnd}, 'YYYY-MM-DD HH24:MI'), 
+			    CAL_STIME = #{calStime},
+			    CAL_ETIME = #{calEtime},
+			    CAL_CONTENT= #{calContent},
+			    CAL_SORT= 2
+			where CAL_SEQ = #{calSeq}
+		</update>
+		
+	
+		<update id="dragUp" parameterType="calendarVO">
+			update calendar
+			set   
+				CAL_START = TO_DATE(#{calStart}, 'YYYY-MM-DD HH24:MI:SS'), 
+				CAL_END = TO_DATE(#{calEnd}, 'YYYY-MM-DD HH24:MI:SS') 
+			where CAL_SEQ = #{calSeq}
+		</update>
+		
+		<delete id="deleteEvent" parameterType="calendarVO">
+			delete from calendar
+			where CAL_SEQ = #{calSeq}
+		</delete>
+		
+		
+	<!-- ///////////////관리자/////////////////////// -->
+	<select id="adminCalList" parameterType="hashMap" resultType="calendarVO">
+		select 
+			CAL_SEQ
+			, MEM_ID
+			, CAL_TITLE
+			, TO_CHAR(CAL_START,'YYYY-MM-DD HH24:MI') CAL_START
+			, TO_CHAR(CAL_END,'YYYY-MM-DD HH24:MI') CAL_END
+			, CAL_STIME
+			, CAL_ETIME
+			, CAL_CONTENT
+			, CAL_SORT
+		from calendar
+		where mem_id ='admin'
+		<if test="yrmon!=null and yrmon!=''">
+			and   to_char(cal_start,'yyyymm') = #{yrmon}
+			order by cal_start
+		</if>
+	</select>
+	
+	<insert id="adminAddEvent" parameterType="calendarVO" >
+		<selectKey resultType="String" order="BEFORE" keyProperty="calSeq">
+		select 'CAL' || lpad(cal_seq.nextval,4,0) from dual
+		</selectKey>
+		INSERT INTO calendar (
+			CAL_SEQ 
+			, MEM_ID 
+			, CAL_TITLE 
+			, CAL_START 
+			, CAL_END 
+			, CAL_STIME
+			, CAL_ETIME
+			, CAL_CONTENT 
+			, CAL_SORT
+
+			)
+		VALUES (
+			#{calSeq} 
+			, 'admin' 
+			, #{calTitle} 
+			, TO_DATE(#{calStart}, 'YYYY-MM-DD HH24:MI') 
+			, TO_DATE(#{calEnd}, 'YYYY-MM-DD HH24:MI')
+			, #{calStime}
+			, #{calEtime}
+			, #{calContent} 
+			, 0
+			
+			)
+	</insert>
+	
+		<select id="adminDetailEvent" parameterType="calendarVO" resultType="calendarVO">
+			select 
+				 CAL_SEQ
+				, MEM_ID
+				, CAL_TITLE
+				, TO_CHAR(CAL_START,'YYYY-MM-DD HH24:MI') CAL_START
+				, TO_CHAR(CAL_END,'YYYY-MM-DD HH24:MI') CAL_END
+				, CAL_STIME
+				, CAL_ETIME
+				, CAL_CONTENT
+				, CAL_SORT
+			from calendar
+			where cal_seq = #{calSeq}
+		</select>
+	
+	
+	
+		<update id="adminUpdateEvent" parameterType="calendarVO">
+			update calendar
+			set CAL_TITLE= #{calTitle},   
+				CAL_START = TO_DATE(#{calStart}, 'YYYY-MM-DD HH24:MI'), 
+				CAL_END = TO_DATE(#{calEnd}, 'YYYY-MM-DD HH24:MI'), 
+			    CAL_STIME = #{calStime},
+			    CAL_ETIME = #{calEtime},
+			    CAL_CONTENT= #{calContent},
+			    CAL_SORT= 0
+			where CAL_SEQ = #{calSeq}
+		</update>
+		
+		
+		<delete id="adminDeleteEvent" parameterType="calendarVO">
+			delete from calendar
+			where CAL_SEQ = #{calSeq}
+		</delete>
+
+		
+</mapper>

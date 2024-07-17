@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homecat.sweethome.mapper.complain.ComplainMapper">
+
+	<sql id="where">
+    	<if test="memId!=null and memId!='' ">
+    		AND MEM_ID = #{memId}
+    	</if>
+		<if test="keyword!=null and keyword!='' ">
+		    	AND (MEM_ID LIKE '%'|| #{keyword} ||'%'
+		            OR TITLE LIKE '%'|| #{keyword} ||'%'
+		            OR CONTENT LIKE '%'|| #{keyword} ||'%')
+		</if>
+	</sql>
+	
+	<insert id="create" parameterType="complainVO">
+		INSERT INTO COMPLAIN(COMP_SEQ, MEM_ID, COMP_CONTENT, REG_DT, REPLY, REPLY_DT, DEL_YN)
+		VALUES((SELECT 'COMP' || TRIM(TO_CHAR(SUBSTR(NVL(MAX(COMP_SEQ), 'COMP000'), 5) + 1, '000'))
+			FROM COMPLAIN), #{memId}, #{compContent}, SYSDATE, null, null, 'N')
+	</insert>
+	
+	<select id="getList" parameterType="hashMap" resultType="complainVO">
+		SELECT T.COMP_SEQ, T.MEM_ID, T.COMP_CONTENT, T.REG_DT, T.REPLY, T.REPLY_DT
+		FROM(
+		    SELECT ROW_NUMBER() OVER(ORDER BY REG_DT DESC) RNUM, COMP_SEQ, MEM_ID, COMP_CONTENT, TO_CHAR(REG_DT, 'YYYY/MM/DD HH24:MI:SS') REG_DT, REPLY, TO_CHAR(REPLY_DT, 'YYYY/MM/DD HH24:MI:SS') REPLY_DT
+		    FROM COMPLAIN
+		    WHERE DEL_YN = 'N'
+			<include refid="where"></include>
+			) T
+		WHERE T.RNUM BETWEEN ((#{currentPage}*#{size}) - (#{size}-1)) AND (#{currentPage}*#{size})
+	</select>
+	
+	<select id="getTotal" parameterType="hashMap" resultType="int">
+		SELECT COUNT(*)
+		FROM COMPLAIN
+		WHERE DEL_YN = 'N'
+		<include refid="where"></include>
+	</select>
+	
+	<select id="getAllList" parameterType="hashMap" resultType="complainVO">
+		SELECT T.COMP_SEQ, T.MEM_ID, T.COMP_CONTENT, T.REG_DT, T.REPLY, T.REPLY_DT, T.DEL_YN
+		FROM(
+		    SELECT ROW_NUMBER() OVER(ORDER BY REG_DT DESC) RNUM, COMP_SEQ, MEM_ID, COMP_CONTENT, TO_CHAR(REG_DT, 'YYYY/MM/DD HH24:MI:SS') REG_DT, REPLY, TO_CHAR(REPLY_DT, 'YYYY/MM/DD HH24:MI:SS') REPLY_DT, DEL_YN
+		    FROM COMPLAIN
+		    WHERE 1=1
+			<include refid="where"></include>
+			) T
+		WHERE T.RNUM BETWEEN ((#{currentPage}*#{size}) - (#{size}-1)) AND (#{currentPage}*#{size})
+	</select>
+	
+	<select id="getAllTotal" parameterType="hashMap" resultType="int">
+		SELECT COUNT(*)
+		FROM COMPLAIN
+		WHERE 1=1
+		<include refid="where"></include>
+	</select>
+	
+	<update id="replyAjax" parameterType="hashMap">
+		UPDATE COMPLAIN 
+		SET REPLY = #{reply}
+			, REPLY_DT = SYSDATE
+		WHERE COMP_SEQ = #{compSeq}
+	</update>
+	
+	<update id="delete" parameterType="hashMap">
+		UPDATE COMPLAIN
+		SET DEL_YN = 'Y'
+		WHERE COMP_SEQ = #{compSeq}
+	</update>
+	
+	<select id="homeCnt" resultType="complainVO">
+		SELECT
+		    comp_seq
+		  , mem_id
+		  , comp_content
+		  , reg_dt
+		  , reply
+		  , reply_dt
+		  , del_yn
+		FROM
+		    complain
+		where del_yn = 'N' 
+	</select>
+	
+	<select id="getMemId" parameterType="String" resultType="String">
+		SELECT MEM_ID
+		FROM COMPLAIN
+		WHERE COMP_SEQ = #{compSeq}
+	</select>
+	
+</mapper>

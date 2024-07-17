@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homecat.sweethome.mapper.moveout.MoveoutMapper">
+
+	<select id="getInfo" parameterType="string" resultType="moveoutVO">
+		SELECT MVO_SEQ, MEM_ID, TO_CHAR(REG_DT, 'YYYY/MM/DD') REG_DT, TO_CHAR(EST_DT, 'YYYY/MM/DD') EST_DT, MVO_DT, PAY_YN, CANCEL_YN, CANCEL_TM, ROOM_CODE, APPLICANT, APPLICANT_TELNO, CHARGE, STATUS, METHOD
+		FROM MOVE_OUT
+		WHERE MEM_ID = #{memId}
+			AND CANCEL_YN = 'N'
+	</select>
+
+	<insert id="insert" parameterType="moveoutVO">
+		INSERT INTO MOVE_OUT(MVO_SEQ, MEM_ID, REG_DT, EST_DT, MVO_DT, PAY_YN, CANCEL_YN, CANCEL_TM, ROOM_CODE, APPLICANT, APPLICANT_TELNO, CHARGE, STATUS, METHOD)
+		VALUES((SELECT 'MVO' || TRIM(TO_CHAR(SUBSTR(NVL(MAX(MVO_SEQ), 'MVO000'), 4) + 1, '000'))
+		        FROM MOVE_OUT), #{memId}, SYSDATE, TO_DATE(#{estDt}, 'YYYY/MM/DD'), NULL, 'N', 'N', NULL, #{roomCode}, #{applicant}, #{applicantTelno}, 0, '신청', #{method})
+	</insert>
+
+	<update id="update" parameterType="moveoutVO">
+		UPDATE MOVE_OUT
+		SET APPLICANT = #{applicant}, APPLICANT_TELNO = #{applicantTelno}, EST_DT = #{estDt}, METHOD = #{method}
+		WHERE MVO_SEQ = #{mvoSeq}
+	</update>
+
+	<select id="getList" parameterType="string" resultType="moveoutVO">
+		SELECT MVO_SEQ, MEM_ID, TO_CHAR(REG_DT, 'YYYY/MM/DD') REG_DT, TO_CHAR(EST_DT, 'YYYY/MM/DD') EST_DT, MVO_DT, PAY_YN, CANCEL_YN, CANCEL_TM, ROOM_CODE, APPLICANT, APPLICANT_TELNO, CHARGE, STATUS, METHOD
+		FROM MOVE_OUT
+		WHERE ROOM_CODE LIKE #{danjiCode} || '%'
+		ORDER BY MVO_SEQ DESC
+	</select>
+	
+	<update id="delete" parameterType="hashMap">
+		UPDATE MOVE_OUT
+		SET CANCEL_YN = 'Y', STATUS = '신청 취소'
+		WHERE MVO_SEQ = #{mvoSeq}
+	</update>
+	
+	<update id="moveoutOK" parameterType="hashMap">
+		UPDATE MOVE_OUT
+		SET STATUS = '정산금 미납', CHARGE = #{charge}
+		WHERE MVO_SEQ = #{mvoSeq}
+	</update>
+	
+	
+	<select id="getPayYN" parameterType="hashMap" resultType="string">
+		SELECT PAY_YN
+		FROM MOVE_OUT
+		WHERE ROOM_CODE = #{roomCode}
+			AND MVO_SEQ = #{mvoSeq}
+	</select>
+	
+	<update id="paySuccess" parameterType="hashMap">
+		UPDATE MOVE_OUT 
+		SET PAY_YN = 'Y', PAY_DT = SYSDATE, STATUS = '정산 완료'
+		WHERE ROOM_CODE = #{roomCode}
+			AND MVO_SEQ = #{mvoSeq}
+	</update>
+	
+	<select id="getMemId" parameterType="String" resultType="String">
+		SELECT MEM_ID FROM MOVE_OUT WHERE MVO_SEQ = #{mvoSeq}
+	</select>
+</mapper>

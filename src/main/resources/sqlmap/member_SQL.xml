@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homecat.sweethome.mapper.member.MemberMapper">
+	
+	<sql id="where">
+		<if test="keyword!=null and keyword!='' ">
+		    	AND (MEM_ID LIKE '%'|| #{keyword} ||'%'
+		            OR MEM_NM LIKE '%'|| #{keyword} ||'%')
+		</if>
+
+	</sql>
+	
+	<sql id="searchMem">
+		<if test="keyword!=null and keyword!='' ">
+			AND 
+			(A.MEM_ID LIKE '%' || #{keyword} || '%'
+			OR 
+			A.MEM_NM LIKE '%'|| #{keyword} ||'%')
+		</if>
+	</sql>
+	
+	<resultMap type="memberVO" id="memberMap">
+		<result property="memId" column="MEM_ID"/>
+		<result property="roomCode" column="ROOM_CODE"/>
+		<result property="memPw" column="MEM_PW"/>
+		<result property="memNm" column="MEM_NM"/>
+		<result property="memBirth" column="MEM_BIRTH"/>
+		<result property="memSex" column="MEM_SEX"/>
+		<result property="memTelno" column="MEM_TELNO"/>
+		<result property="memEmail" column="MEM_EMAIL"/>
+		<result property="nickname" column="NICKNAME"/>
+		<result property="regDt" column="REG_DT"/>
+		<result property="signDt" column="SIGN_DT"/>
+		<result property="mviStatus" column="MVI_STATUS"/>
+		<result property="profImg" column="PROF_IMG"/>
+		<result property="hshldrId" column="HSHLDR_ID"/>
+		<result property="memAuth" column="MEM_AUTH"/>
+		<result property="ccpyCode" column="CCPY_CODE"/>
+		<result property="enabled" column="ENABLED"/>
+		<collection property="danjiVOList" resultMap="danjiMap"></collection>
+	</resultMap>
+	
+	<resultMap type="danjiVO" id="danjiMap">
+		<result property="danjiCode" column="DANJI_CODE"/>
+		<result property="danjiName" column="DANJI_NAME"/>
+	</resultMap>
+	
+	<select id="memberList" parameterType = "map" resultType="memberVO">
+		WITH T AS (
+		    SELECT
+		        ROW_NUMBER() OVER (ORDER BY SIGN_DT ASC, ROOM_CODE ASC) AS RNUM,
+		        A.MEM_ID,
+		        A.MEM_NM,
+		        B.DANJI_NAME,
+		        A.ROOM_CODE,
+		        A.MEM_TELNO,
+		        A.MEM_EMAIL,
+		        A.MEM_BIRTH,
+		        A.HSHLDR_ID,
+		        A.SIGN_DT,
+		        A.ENABLED
+		    FROM
+		        MEMBER A
+		    INNER JOIN DANJI B ON SUBSTR(A.ROOM_CODE, 1, 4) = B.DANJI_CODE
+		    WHERE
+		        A.ROOM_CODE LIKE (SELECT ROOM_CODE
+		                          FROM MEMBER
+		                          WHERE MEM_ID = #{memId}) || '%'
+		        AND A.MVI_STATUS = 'mvi01'
+		        AND A.MEM_AUTH = 'ROLE_USER'
+		        <include refid="searchMem"></include>
+		)
+		SELECT
+		    T.RNUM,
+		    T.MEM_ID,
+		    T.MEM_NM,
+		    T.DANJI_NAME,
+		    T.ROOM_CODE,
+		    T.MEM_TELNO,
+		    T.MEM_EMAIL,
+		    T.MEM_BIRTH,
+		    T.HSHLDR_ID, 
+		    T.SIGN_DT,
+		    T.ENABLED
+		FROM T
+		WHERE T.RNUM BETWEEN ((#{curPage} - 1) * 10 + 1) AND (#{curPage} * 10)
+		ORDER BY T.SIGN_DT ASC
+	</select>
+	
+	<select id="memberCount" parameterType="map" resultType="int">
+		SELECT 
+			COUNT(*)
+		FROM 
+			MEMBER
+		WHERE 
+			ROOM_CODE  LIKE (SELECT 
+								ROOM_CODE 
+                    		 FROM 
+                    		 	MEMBER 
+                    		 WHERE 
+                    		 	MEM_ID = #{memId})||'%'
+   			AND 
+    		MVI_STATUS = 'mvi01'
+    		AND 
+    		MEM_AUTH = 'ROLE_USER'
+    		<include refid="where"></include>
+	</select>
+	
+	<!-- 승인 대기 목록  -->
+	<select id="waitList" parameterType = "map" resultType="memberVO">
+		WITH T AS (
+		    SELECT
+		        ROW_NUMBER() OVER (ORDER BY SIGN_DT ASC, ROOM_CODE ASC) AS RNUM,
+		        A.MEM_ID,
+		        A.MEM_NM,
+		        B.DANJI_NAME,
+		        A.ROOM_CODE,
+		        A.MEM_TELNO,
+		        A.MEM_EMAIL,
+		        A.MEM_BIRTH,
+		        A.HSHLDR_ID,
+		        A.REG_DT
+		    FROM
+		        MEMBER A
+		    INNER JOIN DANJI B ON SUBSTR(A.ROOM_CODE, 1, 4) = B.DANJI_CODE
+		    WHERE
+		        A.ROOM_CODE LIKE (SELECT ROOM_CODE
+		                          FROM MEMBER
+		                          WHERE MEM_ID = #{memId}) || '%'
+		        AND A.MVI_STATUS = 'mvi02'
+		        AND A.MEM_AUTH = 'ROLE_USER'
+		        <include refid="searchMem"></include>
+		)
+		SELECT
+		    T.RNUM,
+		    T.MEM_ID,
+		    T.MEM_NM,
+		    T.DANJI_NAME,
+		    T.ROOM_CODE,
+		    T.MEM_TELNO,
+		    T.MEM_EMAIL,
+		    T.MEM_BIRTH,
+		    T.HSHLDR_ID, 
+		    T.REG_DT
+		FROM T
+		WHERE T.RNUM BETWEEN ((#{curPage} - 1) * 10 + 1) AND (#{curPage} * 10)
+		ORDER BY T.REG_DT ASC
+	</select>
+	
+	<!-- 대기자 수 -->
+	<select id="waitCount" parameterType="String" resultType="int">
+		SELECT 
+			COUNT(*)
+		FROM 
+			MEMBER
+		WHERE 
+			ROOM_CODE  LIKE (SELECT 
+								ROOM_CODE 
+                    		 FROM 
+                    		 	MEMBER 
+                    		 WHERE 
+                    		 	MEM_ID = #{memId})||'%'
+   			AND 
+    		MVI_STATUS = 'mvi02'
+    		AND 
+    		MEM_AUTH = 'ROLE_USER'
+    		<include refid="where"></include>
+	</select>
+	
+	
+	<!-- 승인 거절 모음  -->
+	<select id="rejectList" parameterType = "map" resultType="memberVO">
+		WITH T AS (
+		    SELECT
+		        ROW_NUMBER() OVER (ORDER BY REG_DT ASC, ROOM_CODE ASC) AS RNUM,
+		        A.MEM_ID,
+		        A.MEM_NM,
+		        B.DANJI_NAME,
+		        A.ROOM_CODE,
+		        A.MEM_TELNO,
+		        A.MEM_EMAIL,
+		        A.MEM_BIRTH,
+		        A.HSHLDR_ID,
+		        A.REG_DT
+		    FROM
+		        MEMBER A
+		    INNER JOIN DANJI B ON SUBSTR(A.ROOM_CODE, 1, 4) = B.DANJI_CODE
+		    WHERE
+		        A.ROOM_CODE LIKE (SELECT ROOM_CODE
+		                          FROM MEMBER
+		                          WHERE MEM_ID = #{memId}) || '%'
+		        AND A.MVI_STATUS = 'mvi03'
+		        AND A.MEM_AUTH = 'ROLE_USER'
+		        <include refid="searchMem"></include>
+		)
+		SELECT
+		    T.RNUM,
+		    T.MEM_ID,
+		    T.MEM_NM,
+		    T.DANJI_NAME,
+		    T.ROOM_CODE,
+		    T.MEM_TELNO,
+		    T.MEM_EMAIL,
+		    T.MEM_BIRTH,
+		    T.HSHLDR_ID, 
+		    T.REG_DT
+		FROM T
+		WHERE T.RNUM BETWEEN ((#{curPage} - 1) * 10 + 1) AND (#{curPage} * 10)
+		ORDER BY T.REG_DT ASC
+	</select>
+	
+	<!-- 반려자 수 -->
+	<select id="rejectCount" parameterType="String" resultType="int">
+		SELECT 
+			COUNT(*)
+		FROM 
+			MEMBER
+		WHERE 
+			ROOM_CODE  LIKE (SELECT 
+								ROOM_CODE 
+                    		 FROM 
+                    		 	MEMBER 
+                    		 WHERE 
+                    		 	MEM_ID = #{memId})||'%'
+   			AND 
+    		MVI_STATUS = 'mvi03'
+    		AND 
+    		MEM_AUTH = 'ROLE_USER'
+    		<include refid="where"></include>
+	</select>
+	
+	<!-- 승인  -->
+	<update id="signOk" parameterType="String" >
+		UPDATE MEMBER
+		SET MVI_STATUS = 'mvi01',
+			SIGN_DT = SYSDATE 
+		WHERE MEM_ID = #{memId}
+	</update>
+	
+	<!-- 반려  -->
+	<update id="signNo" parameterType="String" >
+		UPDATE MEMBER
+		SET MVI_STATUS = 'mvi03'
+		WHERE MEM_ID = #{memId}
+	</update>
+	
+	<!-- 제명  -->
+	<delete id="deleteMem" parameterType="String">
+		DELETE FROM MEMBER
+		WHERE MEM_ID = #{memId}
+	</delete>
+	
+	
+	<!-- 아이디 찾기  -->
+	<select id="idFind" parameterType="map" resultType = "memberVO">
+		SELECT 	MEM_ID, MEM_EMAIL
+		FROM 	MEMBER
+		WHERE 	MEM_NM = #{memNm} 
+				AND MEM_TELNO = #{memTelno} 
+				AND MVI_STATUS = 'mvi01'
+	</select>
+	
+	<!-- 비밀번호 업데이트 -->
+	<select id="pwFind" parameterType="memberVO" resultType = "memberVO">
+		SELECT MEM_ID, MEM_NM, MEM_TELNO, MEM_EMAIL
+		FROM   MEMBER
+		WHERE MEM_ID = #{memId} AND MEM_NM = #{memNm}
+		AND   MEM_TELNO = #{memTelno} AND MVI_STATUS = 'mvi01'
+	</select>
+	
+	<update id="pwChange" parameterType="memberVO">
+		UPDATE MEMBER
+		SET MEM_PW = #{memPw},
+			ENABLED = '0'
+		WHERE MEM_ID = #{memId}
+	</update>
+	
+	<update id="enabledAccount" parameterType="memberVO">
+		UPDATE MEMBER
+		SET MEM_PW = #{memPw},
+			ENABLED = '1'
+		WHERE MEM_ID = #{memId}
+	</update>
+
+</mapper>

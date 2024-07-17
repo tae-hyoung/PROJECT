@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homecat.sweethome.mapper.danji.DanjiMapper">
+	
+	<!-- 단지 리스트 -->
+	<select id="getList" resultType="com.homecat.sweethome.vo.danji.DanjiVO">
+	SELECT DANJI_NAME, DANJI_PICTURE, DANJI_CODE
+	FROM DANJI
+	ORDER BY DANJI_CODE DESC
+	</select>
+	
+	<!-- 단지 상세보기 -->
+		<select id="getDetail" parameterType="String" resultType="com.homecat.sweethome.vo.danji.DanjiVO" >
+	  SELECT DANJI_CODE, DANJI_NAME, DANJI_CAT, POST ,ADDR, ADDR_DETAIL, SALE_TYPE, HEATING_TYPE, HALL_TYPE, CNT_DONG,
+	        TRIM(TO_CHAR(CNT_TOTAL_ROOM, '999,999')) CNT_TOTAL_ROOM,
+	        TRIM(TO_CHAR(TOTAL_AREA, '999,999')) TOTAL_AREA,
+	        TRIM(TO_CHAR(RESIDENTIAL_AREA, '999,999')) RESIDENTIAL_AREA,
+	        APPROVAL_DT, CONSTRUCTOR, DEVELOPER,
+	        TRIM(TO_CHAR(MORE_TYPE84, '999,999')) MORE_TYPE84,
+	        TRIM(TO_CHAR(TYPE84, '999,999')) TYPE84,
+	        TRIM(TO_CHAR(TYPE74, '999,999')) TYPE74,
+	        TRIM(TO_CHAR(TYPE69, '999,999')) TYPE69,
+	        TRIM(TO_CHAR(UNDER_TYPE69, '999,999')) UNDER_TYPE69,
+	        FIRST_REG_DT,FIRDT_REG_ID,LAST_UPD_DT,LAST_UPD_ID,DANJI_LAYOUT,DANJI_PICTURE
+	  FROM DANJI
+		WHERE DANJI_CODE = #{danjiCode}
+	</select>
+	
+	<!-- 단지 등록 -->
+	<insert id="createDanji" parameterType="com.homecat.sweethome.vo.danji.DanjiVO">
+		INSERT 
+		INTO DANJI(DANJI_CODE, DANJI_NAME, DANJI_CAT, POST, ADDR, ADDR_DETAIL, SALE_TYPE, HEATING_TYPE, HALL_TYPE
+			      , CNT_DONG, CNT_TOTAL_ROOM, TOTAL_AREA, RESIDENTIAL_AREA, APPROVAL_DT, CONSTRUCTOR, DEVELOPER
+			      , MORE_TYPE84, TYPE84, TYPE74, TYPE69, UNDER_TYPE69
+			      , DANJI_LAYOUT, DANJI_PICTURE) 
+		VALUES (#{danjiCode},#{danjiName},#{danjiCat},#{post},#{addr},#{addrDetail},#{saleType},#{heatingType},#{hallType}
+			   ,#{cntDong},#{cntTotalRoom},#{totalArea},#{residentialArea},#{approvalDt},#{constructor},#{developer}
+			   ,#{moreType84},#{type84},#{type74},#{type69},#{underType69}
+			   ,#{danjiLayout},#{danjiPicture})
+	</insert>
+	
+	<!-- 단지코드 가져오기 -->
+	<select id="getDanjiCode" resultType="String">
+		SELECT MAX(DANJI_CODE)
+		FROM DANJI
+	</select>
+	
+	<!--  -->
+	
+	<!-- 업데이트 -->
+	<update id="updatePost" parameterType="com.homecat.sweethome.vo.danji.DanjiVO">
+	UPDATE DANJI
+		SET 
+			DANJI_NAME = #{danjiName}, DANJI_CAT = #{danjiCat}, POST = #{post}, ADDR = #{addr} , ADDR_DETAIL = #{addrDetail},
+			SALE_TYPE = #{saleType}, HEATING_TYPE = #{heatingType}, HALL_TYPE = #{hallType}, CNT_DONG = #{cntDong},
+			CNT_TOTAL_ROOM = #{cntTotalRoom}, TOTAL_AREA = #{totalArea}, RESIDENTIAL_AREA = #{residentialArea},
+			APPROVAL_DT = #{approvalDt}, CONSTRUCTOR = #{constructor}, DEVELOPER = #{developer}, MORE_TYPE84 = #{moreType84},
+			TYPE84 = #{type84}, TYPE74 = #{type74}, TYPE69 = #{type69}, UNDER_TYPE69 = #{underType69},
+			DANJI_LAYOUT = #{danjiLayout}, DANJI_PICTURE = #{danjiPicture} 
+			
+	WHERE DANJI_CODE = #{danjiCode}
+	</update>
+	
+	<!-- 삭제 -->
+	<delete id="deletePost" parameterType="com.homecat.sweethome.vo.danji.DanjiVO">
+		DELETE 
+		FROM DANJI
+		WHERE DANJI_CODE = #{danjiCode}
+	</delete>
+	
+	<select id="getDanji" resultType="com.homecat.sweethome.vo.danji.DanjiVO">
+		select *	
+		from DANJI
+	</select>
+	
+	<select id="getDanji2" parameterType="hashMap" resultType="com.homecat.sweethome.vo.danji.DanjiVO">
+		select *	
+		from DANJI
+		WHERE DANJI_CODE = #{danjiCode}
+	</select>
+	
+	
+	
+</mapper>

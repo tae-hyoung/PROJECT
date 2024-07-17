@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homecat.sweethome.mapper.member.LogInMapper">
+
+	<resultMap type="memberVO" id="memberMap">
+		<result property="memId" column="MEM_ID"/>
+		<result property="roomCode" column="ROOM_CODE"/>
+		<result property="memPw" column="MEM_PW"/>
+		<result property="memNm" column="MEM_NM"/>
+		<result property="memBirth" column="MEM_BIRTH"/>
+		<result property="memSex" column="MEM_SEX"/>
+		<result property="memTelno" column="MEM_TELNO"/>
+		<result property="memEmail" column="MEM_EMAIL"/>
+		<result property="nickname" column="NICKNAME"/>
+		<result property="regDt" column="REG_DT"/>
+		<result property="signDt" column="SIGN_DT"/>
+		<result property="mviStatus" column="MVI_STATUS"/>
+		<result property="profImg" column="PROF_IMG"/>
+		<result property="hshldrId" column="HSHLDR_ID"/>
+		<result property="memAuth" column="MEM_AUTH"/>
+		<result property="ccpyCode" column="CCPY_CODE"/>
+		<result property="enabled" column="ENABLED"/>
+		<collection property="memberAuthVOList" resultMap="memberAuthMap"></collection>
+	</resultMap>
+	
+	<resultMap type="memberAuthVO" id="memberAuthMap">
+		<result property="memId" column="MEM_ID"/>
+		<result property="memAuth" column="MEM_AUTH"/>
+	</resultMap>
+	
+	<!-- 권한 정보  -->
+	<!--
+	<select id="chkAuth" parameterType="String" resultType="memberVO">
+		SELECT MEM_AUTH
+		FROM MEMBER
+		WHERE MEM_ID = #{memId}
+	</select>
+	-->
+	<!-- 시큐리티 로그인 -->
+	<select id="logInMember" parameterType="memberVO" resultMap="memberMap">
+		SELECT A.MEM_ID, A.ROOM_CODE, A.MEM_PW, A.MEM_NM, A.MEM_BIRTH
+		     , A.MEM_SEX, A.MEM_TELNO, A.MEM_EMAIL, A.NICKNAME, A.REG_DT
+		     , A.MVI_STATUS, A.PROF_IMG, A.HSHLDR_ID, A.CCPY_CODE, A.ENABLED
+		     , B.MEM_AUTH
+		FROM   MEMBER A, MEMBER_AUTH B
+		WHERE  	A.MEM_ID = B.MEM_ID
+		AND    	A.MEM_ID = #{memId}
+	</select>
+	
+	<!--  
+	<select id = "memberLogIn" parameterType="MemberVO" resultType="Integer">
+	SELECT
+		COUNT(*)
+	FROM
+		MEMBER
+	WHERE
+		MEM_ID = #{memId} AND MEM_PW = #{memPw} AND MVI_STATUS = 'mvi01' AND MEM_AUTH = 'ROLE_USER'
+	</select>
+	
+	<select id = "adminLogIn" parameterType="MemberVO" resultType="Integer">
+	SELECT
+		COUNT(*)
+	FROM
+		MEMBER
+	WHERE
+		MEM_ID = #{memId} AND MEM_PW = #{memPw} AND MVI_STATUS = 'mvi01' AND MEM_AUTH = 'ROLE_MANAGER'
+	</select>
+	
+	
+	<select id = "subconLogIn" parameterType="MemberVO" resultType="Integer">
+	SELECT
+		COUNT(*)
+	FROM
+		MEMBER
+	WHERE
+		MEM_ID = #{memId} AND MEM_PW = #{memPw} AND MVI_STATUS = 'mvi01'
+		
+	</select>
+	-->
+
+</mapper>

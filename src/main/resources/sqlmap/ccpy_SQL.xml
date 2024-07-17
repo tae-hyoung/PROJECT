@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homecat.sweethome.mapper.ccpy.CcpyMapper">
+
+	<select id="getCcpy" resultType="ccpyVO">
+		SELECT
+		    ccpy_code
+		  , ccpy_cat
+		  , ccpy_name
+		  , ccpy_telno
+		  , ccpy_post
+		  , ccpy_addr
+		  , ccpy_addr_detail
+		  , biz_reg_no
+		  , cntr_dt
+		  , exp_dt
+		FROM
+		    ccpy    
+		where ccpy_cat like '%pckcat%'
+	</select>
+	
+	<!-- 하자보수 리스트 가져오기 -->
+	<select id="getCcpyCode" resultType="ccpyVO">
+		SELECT 
+		    CCPY_CODE
+		    , CCPY_CAT
+		    , CCPY_NAME
+		    , CCPY_TELNO
+		    , CCPY_POST
+		    , CCPY_ADDR
+		    , CCPY_ADDR_DETAIL
+		    , BIZ_REG_NO
+		    , CNTR_DT
+		    , EXP_DT
+		FROM CCPY
+		WHERE CCPY_CAT LIKE '%mt%'
+	</select>
+	
+	<resultMap type="ccpyVO" id="ccpyMap">
+		<result property="rnum" column="rnum"/>
+		<result property="ccpyCode" column="CCPY_CODE"/>
+		<result property="ccpyCat" column="CCPY_CAT"/>
+		<result property="ccpyName" column="CCPY_NAME"/>
+		<result property="ccpyTelno" column="CCPY_TELNO"/>
+		<result property="ccpyPost" column="CCPY_POST"/>
+		<result property="ccpyAddr" column="CCPY_ADDR"/>
+		<result property="ccpyAddrDetail" column="CCPY_ADDR_DETAIL"/>
+		<result property="bizRegNo" column="BIZ_REG_NO"/>
+		<result property="cntrDt" column="CNTR_DT"/>
+		<result property="expDt" column="EXP_DT"/>
+	</resultMap>
+	
+	<select id="list" parameterType="hashMap" resultType="ccpyVO" resultMap="ccpyMap">
+		SELECT
+			ROW_NUMBER() OVER(ORDER BY CCPY_CODE ASC) AS RNUM
+		  , CCPY_CODE
+		  , CCPY_CAT
+		  , CCPY_NAME
+		  , CCPY_TELNO
+		  , CCPY_POST
+		  , CCPY_ADDR
+		  , CCPY_ADDR_DETAIL
+		  , BIZ_REG_NO
+		  , TO_CHAR(CNTR_DT, 'YYYY/MM/DD') AS CNTR_DT
+		  , TO_CHAR(EXP_DT, 'YYYY/MM/DD') AS EXP_DT
+		FROM
+		    CCPY
+		ORDER BY RNUM DESC
+	</select>
+	
+
+</mapper>
